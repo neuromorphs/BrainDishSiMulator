@@ -1,4 +1,4 @@
-# BrainDishSiMulator
+# BDSiM : BrainDishSiMulator
 Repository for Telluride 2023's BrainDish project
 
 ## Resources
