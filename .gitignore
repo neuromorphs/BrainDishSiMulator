@@ -1,2 +1,5 @@
 data/article_data/*.pkl
 data/article_data/*.csv
+data/*.pkl
+data/*.csv
+*venv*
