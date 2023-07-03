@@ -1,2 +1,2 @@
-data/*.pkl
-data/*.csv
+data/article_data/*.pkl
+data/article_data/*.csv

@@ -1,0 +1,438 @@
+info: recording started: 2021-06-01 17:20:51 AEST
+info: recording started (epoch seconds): 1622532051
+info: recording host: labnuc1
+info: recording chip id: 9501
+info: experiment tag: prim_test_rate_code_random_3
+info: stimulation mode: full game
+info: electrode config: /home/labuser/cfg/gen3c-3.cfg
+info: dishserver config: /home/labuser/src/dishpill/conf/ratecode-random.conf
+info: electrode metadata: /home/labuser/cfg/gen3c-3.elconf
+info: replay path: /data/trace/9501.2021-06-01.2.replay.bin
+info: git version: 3cf8eccdb74c6361a886e395d92935b4e2612cd1
+info: git description: v0.7-159-g3cf8ecc
+info: time limit (seconds): 1200
+info: spikes record path: /data/trace/9501.2021-06-01.2.spikes.bin
+174310745: game begin
+174344201: ball bounce
+174354401: ball bounce
+174403201: ball return
+174434801: ball bounce
+174462201: ball bounce
+174515201: ball bounce
+174522201: ball missed
+174522201: motor layout: 0
+174716401: ball bounce
+174759001: ball bounce
+174776401: ball missed
+174776401: motor layout: 0
+174970601: ball bounce
+175029601: ball return
+175088601: ball bounce
+175103801: ball bounce
+175148601: ball missed
+175148601: motor layout: 0
+175342801: ball bounce
+175354001: ball bounce
+175402801: ball missed
+175402801: motor layout: 0
+175597001: ball bounce
+175652401: ball bounce
+175657001: ball missed
+175657001: motor layout: 0
+175851201: ball bounce
+175861201: ball bounce
+175911201: ball missed
+175911201: motor layout: 0
+176105401: ball bounce
+176141201: ball bounce
+176165401: ball missed
+176165401: motor layout: 0
+176359601: ball bounce
+176392801: ball bounce
+176418601: ball return
+176477601: ball bounce
+176519201: ball bounce
+176537601: ball missed
+176537601: motor layout: 0
+176731801: ball bounce
+176734201: ball bounce
+176791801: ball missed
+176791801: motor layout: 0
+176986001: ball bounce
+176992001: ball bounce
+177046001: ball missed
+177046001: motor layout: 0
+177240201: ball bounce
+177274001: ball bounce
+177300201: ball missed
+177300201: motor layout: 0
+177494401: ball bounce
+177501201: ball bounce
+177554401: ball missed
+177554401: motor layout: 0
+177748601: ball bounce
+177808601: ball missed
+177808601: motor layout: 0
+178002801: ball bounce
+178011801: ball bounce
+178061801: ball return
+178089801: ball bounce
+178120801: ball bounce
+178167801: ball bounce
+178180801: ball missed
+178180801: motor layout: 0
+178375001: ball bounce
+178402401: ball bounce
+178434001: ball return
+178493001: ball bounce
+178517201: ball bounce
+178553001: ball missed
+178553001: motor layout: 0
+178747201: ball bounce
+178778801: ball bounce
+178806201: ball return
+178865201: ball bounce
+178902001: ball bounce
+178925201: ball missed
+178925201: motor layout: 0
+179119401: ball bounce
+179178401: ball return
+179237401: ball bounce
+179256001: ball bounce
+179297401: ball missed
+179297401: motor layout: 0
+179491601: ball bounce
+179500001: ball bounce
+179551601: ball missed
+179551601: motor layout: 0
+179745801: ball bounce
+179805801: ball missed
+179805801: motor layout: 0
+180000001: ball bounce
+180053401: ball bounce
+180060001: ball missed
+180060001: motor layout: 0
+180254201: ball bounce
+180267201: ball bounce
+180313201: ball return
+180353201: ball bounce
+180372201: ball bounce
+180431201: ball return
+180439201: ball bounce
+180490201: ball bounce
+180525201: ball bounce
+180550201: ball missed
+180550201: motor layout: 0
+180744401: ball bounce
+180803401: ball return
+180862401: ball bounce
+180921401: ball return
+180980401: ball bounce
+181039401: ball return
+181098401: ball bounce
+181157401: ball return
+181216401: ball bounce
+181275401: ball return
+181334401: ball bounce
+181394401: ball missed
+181394401: motor layout: 0
+181588601: ball bounce
+181601801: ball bounce
+181647601: ball return
+181688201: ball bounce
+181706601: ball bounce
+181766601: ball missed
+181766601: motor layout: 0
+181960801: ball bounce
+181966401: ball bounce
+182020801: ball missed
+182020801: motor layout: 0
+182215001: ball bounce
+182263401: ball bounce
+182275001: ball missed
+182275001: motor layout: 0
+182469201: ball bounce
+182528201: ball return
+182587201: ball bounce
+182646201: ball return
+182705201: ball bounce
+182718001: ball bounce
+182764201: ball return
+182823201: ball bounce
+182882201: ball return
+182941201: ball bounce
+183000201: ball return
+183059201: ball bounce
+183118201: ball return
+183177201: ball bounce
+183236201: ball return
+183275601: ball bounce
+183295201: ball bounce
+183355201: ball missed
+183355201: motor layout: 0
+183549401: ball bounce
+183581201: ball bounce
+183609401: ball missed
+183609401: motor layout: 0
+183803601: ball bounce
+183824601: ball bounce
+183863601: ball missed
+183863601: motor layout: 0
+184057801: ball bounce
+184060601: ball bounce
+184116801: ball return
+184126201: ball bounce
+184175801: ball bounce
+184191801: ball bounce
+184234801: ball return
+184257401: ball bounce
+184293801: ball bounce
+184323001: ball bounce
+184353801: ball missed
+184353801: motor layout: 0
+184548001: ball bounce
+184550801: ball bounce
+184608001: ball missed
+184608001: motor layout: 0
+184802201: ball bounce
+184805201: ball bounce
+184861201: ball return
+184871201: ball bounce
+184920201: ball bounce
+184937201: ball bounce
+184979201: ball return
+185003201: ball bounce
+185038201: ball bounce
+185069201: ball bounce
+185098201: ball missed
+185098201: motor layout: 0
+185292401: ball bounce
+185295201: ball bounce
+185352401: ball missed
+185352401: motor layout: 0
+185546601: ball bounce
+185574201: ball bounce
+185606601: ball missed
+185606601: motor layout: 0
+185800801: ball bounce
+185860801: ball missed
+185860801: motor layout: 0
+186055001: ball bounce
+186072601: ball bounce
+186115001: ball missed
+186115001: motor layout: 0
+186309201: ball bounce
+186369201: ball missed
+186369201: motor layout: 0
+186563401: ball bounce
+186623401: ball missed
+186623401: motor layout: 0
+186817601: ball bounce
+186850601: ball bounce
+186877601: ball missed
+186877601: motor layout: 0
+187071801: ball bounce
+187079601: ball bounce
+187130801: ball return
+187155201: ball bounce
+187189801: ball bounce
+187230801: ball bounce
+187249801: ball missed
+187249801: motor layout: 0
+187444001: ball bounce
+187455001: ball bounce
+187504001: ball missed
+187504001: motor layout: 0
+187698201: ball bounce
+187758201: ball missed
+187758201: motor layout: 0
+187952401: ball bounce
+187995401: ball bounce
+188012401: ball missed
+188012401: motor layout: 0
+188206601: ball bounce
+188266601: ball missed
+188266601: motor layout: 0
+188460801: ball bounce
+188519801: ball return
+188555201: ball bounce
+188578801: ball bounce
+188637801: ball return
+188696801: ball bounce
+188756801: ball missed
+188756801: motor layout: 0
+188951001: ball bounce
+188960601: ball bounce
+189011001: ball missed
+189011001: motor layout: 0
+189205201: ball bounce
+189257001: ball bounce
+189264201: ball return
+189323201: ball bounce
+189382201: ball return
+189420609: ball bounce
+189441209: ball bounce
+189500209: ball return
+189559209: ball bounce
+189584209: ball bounce
+189618209: ball return
+189677209: ball bounce
+189737209: ball missed
+189737209: motor layout: 0
+189931409: ball bounce
+189990409: ball return
+190049409: ball bounce
+190108409: ball return
+190167409: ball bounce
+190226409: ball return
+190285409: ball bounce
+190345409: ball missed
+190345409: motor layout: 0
+190539609: ball bounce
+190598609: ball return
+190657609: ball bounce
+190716609: ball return
+190775609: ball bounce
+190807409: ball bounce
+190835609: ball missed
+190835609: motor layout: 0
+191029809: ball bounce
+191036809: ball bounce
+191088809: ball return
+191110809: ball bounce
+191147809: ball bounce
+191184809: ball bounce
+191207809: ball missed
+191207809: motor layout: 0
+191402009: ball bounce
+191420409: ball bounce
+191654569: ball return
+191710769: ball bounce
+191713569: ball bounce
+191772569: ball return
+191807569: ball bounce
+191831569: ball bounce
+191891569: ball missed
+191891569: motor layout: 0
+192085769: ball bounce
+192107369: ball bounce
+192144769: ball return
+192203769: ball bounce
+192210569: ball bounce
+192263769: ball missed
+192263769: motor layout: 0
+192457969: ball bounce
+192516969: ball return
+192575969: ball bounce
+192601369: ball bounce
+192634969: ball return
+192693969: ball bounce
+192753969: ball missed
+192753969: motor layout: 0
+192948169: ball bounce
+192976569: ball bounce
+193007169: ball return
+193066169: ball bounce
+193093369: ball bounce
+193126169: ball missed
+193126169: motor layout: 0
+193320369: ball bounce
+193335769: ball bounce
+193379369: ball return
+193426569: ball bounce
+193438369: ball bounce
+193498369: ball missed
+193498369: motor layout: 0
+193692569: ball bounce
+193751569: ball return
+193810569: ball bounce
+193858369: ball bounce
+193869569: ball return
+193928569: ball bounce
+193987569: ball return
+194046569: ball bounce
+194105569: ball return
+194164569: ball bounce
+194224569: ball missed
+194224569: motor layout: 0
+194418769: ball bounce
+194420369: ball bounce
+194478769: ball missed
+194478769: motor layout: 0
+194672969: ball bounce
+194677969: ball bounce
+194731969: ball return
+194747969: ball bounce
+194790969: ball bounce
+194817969: ball bounce
+194849969: ball return
+194887969: ball bounce
+194908969: ball bounce
+194957969: ball bounce
+194968969: ball missed
+194968969: motor layout: 0
+195163169: ball bounce
+195178769: ball bounce
+195222169: ball return
+195269969: ball bounce
+195281169: ball bounce
+195340169: ball return
+195361169: ball bounce
+195399169: ball bounce
+195452369: ball bounce
+195459169: ball missed
+195459169: motor layout: 0
+195653369: ball bounce
+195675369: ball bounce
+195712369: ball return
+195771369: ball bounce
+195779369: ball bounce
+195830369: ball return
+195883369: ball bounce
+195889369: ball bounce
+195948369: ball return
+195987369: ball bounce
+196007369: ball bounce
+196066369: ball return
+196091369: ball bounce
+196125369: ball bounce
+196184369: ball return
+196195369: ball bounce
+196243369: ball bounce
+196299369: ball bounce
+196303369: ball missed
+196303369: motor layout: 0
+196497569: ball bounce
+196510169: ball bounce
+196557569: ball missed
+196557569: motor layout: 0
+196751769: ball bounce
+196811769: ball missed
+196811769: motor layout: 0
+197005969: ball bounce
+197032569: ball bounce
+197064969: ball return
+197123969: ball bounce
+197145769: ball bounce
+197182969: ball return
+197241969: ball bounce
+197258969: ball bounce
+197301969: ball missed
+197301969: motor layout: 0
+197496169: ball bounce
+197556169: ball missed
+197556169: motor layout: 0
+197750369: ball bounce
+197762369: ball bounce
+197809369: ball return
+197846369: ball bounce
+197868369: ball bounce
+197928369: ball missed
+197928369: motor layout: 0
+198122569: ball bounce
+198182569: ball missed
+198182569: motor layout: 0
+198376769: ball bounce
+198377569: ball bounce
+198436769: ball missed
+198436769: motor layout: 0

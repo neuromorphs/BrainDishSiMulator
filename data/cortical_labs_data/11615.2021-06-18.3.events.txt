@@ -1,0 +1,223 @@
+info: recording started: 2021-06-18 16:29:25 AEST
+info: recording started (epoch seconds): 1623997765
+info: recording host: labnuc3
+info: recording chip id: 11615
+info: experiment tag: GFP_low_test_rate_code_random_3
+info: stimulation mode: rest
+info: electrode config: /home/labuser/cfg/gen3c-3.cfg
+info: dishserver config: /home/labuser/src/dishpill/conf/ratecode-random.conf
+info: electrode metadata: /home/labuser/cfg/gen3c-3.elconf
+info: replay path: /data/trace/11615.2021-06-18.3.replay.bin
+info: git version: 36edcfe98ff5f3b3811f29c4cc7ec97611220b48
+info: git description: v0.7-150-g36edcfe
+info: time limit (seconds): 600
+info: spikes record path: /data/trace/11615.2021-06-18.3.spikes.bin
+2107073765: game begin
+2107107140: ball bounce
+2107117340: ball bounce
+2107166140: ball return
+2107197740: ball bounce
+2107225140: ball bounce
+2107278140: ball bounce
+2107285140: ball missed
+2107285140: motor layout: 0
+2107479340: ball bounce
+2107521940: ball bounce
+2107539340: ball missed
+2107539340: motor layout: 0
+2107733540: ball bounce
+2107740340: ball bounce
+2107792540: ball return
+2107813940: ball bounce
+2107851540: ball bounce
+2107887540: ball bounce
+2107911540: ball missed
+2107911540: motor layout: 0
+2108105740: ball bounce
+2108145340: ball bounce
+2108165740: ball missed
+2108165740: motor layout: 0
+2108359940: ball bounce
+2108366940: ball bounce
+2108419940: ball missed
+2108419940: motor layout: 0
+2108614140: ball bounce
+2108646940: ball bounce
+2108673140: ball return
+2108732140: ball bounce
+2108772540: ball bounce
+2108791140: ball return
+2108850140: ball bounce
+2108898140: ball bounce
+2108910140: ball missed
+2108910140: motor layout: 0
+2109104340: ball bounce
+2109163340: ball return
+2109222340: ball bounce
+2109282340: ball missed
+2109282340: motor layout: 0
+2109476540: ball bounce
+2109520540: ball bounce
+2109536540: ball missed
+2109536540: motor layout: 0
+2109730740: ball bounce
+2109733340: ball bounce
+2109790740: ball missed
+2109790740: motor layout: 0
+2109984940: ball bounce
+2109987940: ball bounce
+2110044940: ball missed
+2110044940: motor layout: 0
+2110239140: ball bounce
+2110278340: ball bounce
+2110299140: ball missed
+2110299140: motor layout: 0
+2110493340: ball bounce
+2110542740: ball bounce
+2110553340: ball missed
+2110553340: motor layout: 0
+2110747540: ball bounce
+2110751740: ball bounce
+2110807540: ball missed
+2110807540: motor layout: 0
+2111001740: ball bounce
+2111061740: ball missed
+2111061740: motor layout: 0
+2111255940: ball bounce
+2111296540: ball bounce
+2111314940: ball return
+2111373940: ball bounce
+2111432940: ball return
+2111437740: ball bounce
+2111491940: ball bounce
+2111550940: ball return
+2111578940: ball bounce
+2111609940: ball bounce
+2111669940: ball missed
+2111669940: motor layout: 0
+2111864140: ball bounce
+2111915540: ball bounce
+2111924140: ball missed
+2111924140: motor layout: 0
+2112118340: ball bounce
+2112178340: ball missed
+2112178340: motor layout: 0
+2112372540: ball bounce
+2112395540: ball bounce
+2112432540: ball missed
+2112432540: motor layout: 0
+2112626740: ball bounce
+2112636340: ball bounce
+2112685740: ball return
+2112715540: ball bounce
+2112744740: ball bounce
+2112794740: ball bounce
+2112804740: ball missed
+2112804740: motor layout: 0
+2112998940: ball bounce
+2113055940: ball bounce
+2113058940: ball missed
+2113058940: motor layout: 0
+2113253140: ball bounce
+2113254540: ball bounce
+2113313140: ball missed
+2113313140: motor layout: 0
+2113507340: ball bounce
+2113543540: ball bounce
+2113567340: ball missed
+2113567340: motor layout: 0
+2113761540: ball bounce
+2113821540: ball missed
+2113821540: motor layout: 0
+2114015740: ball bounce
+2114033340: ball bounce
+2114074740: ball return
+2114128540: ball bounce
+2114133740: ball bounce
+2114192740: ball return
+2114223740: ball bounce
+2114251740: ball bounce
+2114311740: ball missed
+2114311740: motor layout: 0
+2114505940: ball bounce
+2114507740: ball bounce
+2114565940: ball missed
+2114565940: motor layout: 0
+2114760140: ball bounce
+2114768540: ball bounce
+2114819140: ball return
+2114845340: ball bounce
+2114878140: ball bounce
+2114922140: ball bounce
+2114938140: ball missed
+2114938140: motor layout: 0
+2115132340: ball bounce
+2115141540: ball bounce
+2115191340: ball return
+2115219940: ball bounce
+2115250340: ball bounce
+2115298340: ball bounce
+2115309340: ball return
+2115368340: ball bounce
+2115376740: ball bounce
+2115427340: ball return
+2115455140: ball bounce
+2115486340: ball bounce
+2115533540: ball bounce
+2115546340: ball missed
+2115546340: motor layout: 0
+2115740540: ball bounce
+2115750940: ball bounce
+2115800540: ball missed
+2115800540: motor layout: 0
+2115994740: ball bounce
+2116054740: ball missed
+2116054740: motor layout: 0
+2116248940: ball bounce
+2116308940: ball missed
+2116308940: motor layout: 0
+2116503140: ball bounce
+2116563140: ball missed
+2116563140: motor layout: 0
+2116757340: ball bounce
+2116817340: ball missed
+2116817340: motor layout: 0
+2117011540: ball bounce
+2117035940: ball bounce
+2117070540: ball return
+2117129540: ball bounce
+2117144740: ball bounce
+2117188540: ball return
+2117247540: ball bounce
+2117253540: ball bounce
+2117306540: ball return
+2117362340: ball bounce
+2117365540: ball bounce
+2117425540: ball missed
+2117425540: motor layout: 0
+2117619740: ball bounce
+2117679740: ball missed
+2117679740: motor layout: 0
+2117873940: ball bounce
+2117933940: ball missed
+2117933940: motor layout: 0
+2118128140: ball bounce
+2118138140: ball bounce
+2118187140: ball return
+2118218140: ball bounce
+2118246140: ball bounce
+2118298140: ball bounce
+2118306140: ball missed
+2118306140: motor layout: 0
+2118500340: ball bounce
+2118504940: ball bounce
+2118559340: ball return
+2118574140: ball bounce
+2118618340: ball bounce
+2118643340: ball bounce
+2118678340: ball missed
+2118678340: motor layout: 0
+2118872540: ball bounce
+2118905940: ball bounce
+2118932540: ball missed
+2118932540: motor layout: 0

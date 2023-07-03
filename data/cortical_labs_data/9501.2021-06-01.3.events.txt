@@ -1,0 +1,212 @@
+info: recording started: 2021-06-01 17:41:01 AEST
+info: recording started (epoch seconds): 1622533261
+info: recording host: labnuc1
+info: recording chip id: 9501
+info: experiment tag: prim_test_rate_code_random_3
+info: stimulation mode: rest
+info: electrode config: /home/labuser/cfg/gen3c-3.cfg
+info: dishserver config: /home/labuser/src/dishpill/conf/ratecode-random.conf
+info: electrode metadata: /home/labuser/cfg/gen3c-3.elconf
+info: replay path: /data/trace/9501.2021-06-01.3.replay.bin
+info: git version: 3cf8eccdb74c6361a886e395d92935b4e2612cd1
+info: git description: v0.7-159-g3cf8ecc
+info: time limit (seconds): 600
+info: spikes record path: /data/trace/9501.2021-06-01.3.spikes.bin
+198511193: game begin
+198544137: ball bounce
+198554337: ball bounce
+198603137: ball return
+198634737: ball bounce
+198662137: ball bounce
+198715137: ball bounce
+198722137: ball missed
+198722137: motor layout: 0
+198916337: ball bounce
+198958937: ball bounce
+198976337: ball missed
+198976337: motor layout: 0
+199170537: ball bounce
+199177337: ball bounce
+199230537: ball missed
+199230537: motor layout: 0
+199424737: ball bounce
+199464337: ball bounce
+199484737: ball missed
+199484737: motor layout: 0
+199678937: ball bounce
+199685937: ball bounce
+199738937: ball missed
+199738937: motor layout: 0
+199933137: ball bounce
+199965937: ball bounce
+199993137: ball missed
+199993137: motor layout: 0
+200187337: ball bounce
+200246337: ball return
+200305337: ball bounce
+200364337: ball return
+200423337: ball bounce
+200432137: ball bounce
+200483337: ball missed
+200483337: motor layout: 0
+200677537: ball bounce
+200721537: ball bounce
+200736537: ball return
+200795537: ball bounce
+200855537: ball missed
+200855537: motor layout: 0
+201049737: ball bounce
+201052337: ball bounce
+201109737: ball missed
+201109737: motor layout: 0
+201303937: ball bounce
+201306937: ball bounce
+201363937: ball missed
+201363937: motor layout: 0
+201558137: ball bounce
+201597337: ball bounce
+201618137: ball missed
+201618137: motor layout: 0
+201812337: ball bounce
+201861737: ball bounce
+201871337: ball return
+201930337: ball bounce
+201990337: ball missed
+201990337: motor layout: 0
+202184537: ball bounce
+202188737: ball bounce
+202243537: ball return
+202257137: ball bounce
+202302537: ball bounce
+202325537: ball bounce
+202362537: ball missed
+202362537: motor layout: 0
+202556737: ball bounce
+202616737: ball missed
+202616737: motor layout: 0
+202810937: ball bounce
+202851537: ball bounce
+202870937: ball missed
+202870937: motor layout: 0
+203065137: ball bounce
+203116537: ball bounce
+203125137: ball missed
+203125137: motor layout: 0
+203319337: ball bounce
+203378337: ball return
+203437337: ball bounce
+203457737: ball bounce
+203497337: ball missed
+203497337: motor layout: 0
+203691537: ball bounce
+203714537: ball bounce
+203750537: ball return
+203809537: ball bounce
+203820537: ball bounce
+203869537: ball missed
+203869537: motor layout: 0
+204063737: ball bounce
+204073337: ball bounce
+204122737: ball return
+204152537: ball bounce
+204181737: ball bounce
+204231737: ball bounce
+204241737: ball missed
+204241737: motor layout: 0
+204435937: ball bounce
+204492937: ball bounce
+204495937: ball missed
+204495937: motor layout: 0
+204690137: ball bounce
+204691537: ball bounce
+204750137: ball missed
+204750137: motor layout: 0
+204944337: ball bounce
+204980537: ball bounce
+205004337: ball missed
+205004337: motor layout: 0
+205198537: ball bounce
+205258537: ball missed
+205258537: motor layout: 0
+205452737: ball bounce
+205470337: ball bounce
+205511737: ball return
+205565537: ball bounce
+205570737: ball bounce
+205629737: ball return
+205660737: ball bounce
+205688737: ball bounce
+205748737: ball missed
+205748737: motor layout: 0
+205942937: ball bounce
+205944737: ball bounce
+206002937: ball missed
+206002937: motor layout: 0
+206197137: ball bounce
+206205537: ball bounce
+206257137: ball missed
+206257137: motor layout: 0
+206451337: ball bounce
+206460537: ball bounce
+206511337: ball missed
+206511337: motor layout: 0
+206705537: ball bounce
+206715937: ball bounce
+206764537: ball return
+206796737: ball bounce
+206823537: ball bounce
+206877537: ball bounce
+206883537: ball missed
+206883537: motor layout: 0
+207077737: ball bounce
+207137737: ball missed
+207137737: motor layout: 0
+207331937: ball bounce
+207391937: ball missed
+207391937: motor layout: 0
+207586137: ball bounce
+207646137: ball missed
+207646137: motor layout: 0
+207840337: ball bounce
+207900337: ball missed
+207900337: motor layout: 0
+208094537: ball bounce
+208118937: ball bounce
+208153537: ball return
+208212537: ball bounce
+208227737: ball bounce
+208272537: ball missed
+208272537: motor layout: 0
+208466737: ball bounce
+208526737: ball missed
+208526737: motor layout: 0
+208720937: ball bounce
+208780937: ball missed
+208780937: motor layout: 0
+208975137: ball bounce
+208985137: ball bounce
+209035137: ball missed
+209035137: motor layout: 0
+209229337: ball bounce
+209233937: ball bounce
+209289337: ball missed
+209289337: motor layout: 0
+209483537: ball bounce
+209516937: ball bounce
+209543537: ball missed
+209543537: motor layout: 0
+209737737: ball bounce
+209766137: ball bounce
+209797737: ball missed
+209797737: motor layout: 0
+209991937: ball bounce
+210051937: ball missed
+210051937: motor layout: 0
+210246137: ball bounce
+210255337: ball bounce
+210305137: ball return
+210333737: ball bounce
+210364137: ball bounce
+210412137: ball bounce
+210424137: ball missed
+210424137: motor layout: 0
