@@ -25,7 +25,7 @@ def load_file(chip_id, chip_session, data_path) :
     return subset, events
 
 
-def get_spiketimes(data, array_size) :
+def get_spiketimes(data, array_size,fs) :
     # Extracting the spike times into a list and converting to seconds
     spiketimes_list = []
     for i in range(array_size) :
