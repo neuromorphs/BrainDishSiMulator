@@ -98,6 +98,7 @@ proglog==0.1.10
 prometheus-client==0.17.0
 prompt-toolkit==3.0.38
 protobuf==4.23.3
+psweep
 psutil==5.9.5
 ptyprocess==0.7.0
 pure-eval==0.2.2
@@ -131,7 +132,6 @@ sniffio==1.3.0
 soupsieve==2.4.1
 stable-baselines3==2.0.0a1
 stack-data==0.6.2
-stork @ git+https://github.com/fmi-basel/stork@84d92a5db1918f5b363381c8a47bf7114d92deac
 sympy==1.12
 tensorboard==2.13.0
 tensorboard-data-server==0.7.1
