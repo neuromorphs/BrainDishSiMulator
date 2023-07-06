@@ -3,7 +3,10 @@ import time
 import cv2
 import numpy as np
 
-
+from controls import Paddle, Ball
+import sys
+sys.path.append("../../")
+from models.rl_agents import DQNAgent
 
 # Pygame Initialization
 pygame.init()
@@ -22,7 +25,6 @@ PLAYER = "RL-AGENT"  # Choose between "AI" and "Human"
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 
-# Game Objects
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 font = pygame.font.Font(None, FONT_SIZE)
@@ -50,24 +52,22 @@ def pseudo_ai(paddle, ball):
         return 1
 
 def game_loop():
-    paddle = Paddle()
-    ball = Ball()
     score = 0
     running = True
     generation = 0
 
     # RL Agent
-    agent = RLAgent()
+    agent = DQNAgent()
     seed = 0
     np.random.seed(seed)
 
     while running:
         done = False
-        paddle = Paddle()
+        paddle = Paddle(PADDLE_W, PADDLE_H, screen)
         angle = np.random.choice([45, 135, 225, 315])
         dx = np.cos(angle)
         dy = np.sin(angle)
-        ball = Ball(dx, dy)
+        ball = Ball(screen, dx, dy, BALL_SIZE)
         score = 0
         game_over_flag = False
         while not game_over_flag:

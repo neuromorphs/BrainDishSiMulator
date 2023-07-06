@@ -1,0 +1,35 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="Eslint" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="21">
+            <item index="0" class="java.lang.String" itemvalue="tqdm" />
+            <item index="1" class="java.lang.String" itemvalue="nbsphinx" />
+            <item index="2" class="java.lang.String" itemvalue="protobuf" />
+            <item index="3" class="java.lang.String" itemvalue="typer" />
+            <item index="4" class="java.lang.String" itemvalue="scikit-learn" />
+            <item index="5" class="java.lang.String" itemvalue="pytest" />
+            <item index="6" class="java.lang.String" itemvalue="sklearn" />
+            <item index="7" class="java.lang.String" itemvalue="torch" />
+            <item index="8" class="java.lang.String" itemvalue="pyserial" />
+            <item index="9" class="java.lang.String" itemvalue="pytest-xdist" />
+            <item index="10" class="java.lang.String" itemvalue="numpy" />
+            <item index="11" class="java.lang.String" itemvalue="torchvision" />
+            <item index="12" class="java.lang.String" itemvalue="docker" />
+            <item index="13" class="java.lang.String" itemvalue="psutil" />
+            <item index="14" class="java.lang.String" itemvalue="sphinx" />
+            <item index="15" class="java.lang.String" itemvalue="recommonmark" />
+            <item index="16" class="java.lang.String" itemvalue="tensorflow" />
+            <item index="17" class="java.lang.String" itemvalue="pandoc" />
+            <item index="18" class="java.lang.String" itemvalue="rshell" />
+            <item index="19" class="java.lang.String" itemvalue="matplotlib" />
+            <item index="20" class="java.lang.String" itemvalue="pillow" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
