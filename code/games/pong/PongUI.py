@@ -8,14 +8,10 @@ import sys
 sys.path.append("../../")
 from models.rl_agents import DQNAgent
 
-# Pygame Initialization
-pygame.init()
-
 # Game parameters
 WIDTH, HEIGHT = 600, 600
 BALL_SIZE = 40
 PADDLE_W, PADDLE_H = 40, 250
-FPS = 100
 FONT_SIZE = 32
 
 # Player type
@@ -25,22 +21,18 @@ PLAYER = "RL-AGENT"  # Choose between "AI" and "Human"
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-clock = pygame.time.Clock()
-font = pygame.font.Font(None, FONT_SIZE)
 
-
-def draw_env_status():
+def draw_env_status(screen):
     downscaled = cv2.resize(pygame.surfarray.array3d(screen), (40, 40))
     return downscaled
 
 
-def draw_header(score, generation):
+def draw_header(screen, font, score, generation):
     score_text = font.render(f"Generation {generation} - Score: {score}", True, WHITE)
     screen.blit(score_text, (WIDTH - score_text.get_width() - 10, 10))
 
 
-def game_over():
+def game_over(screen, font):
     game_over_text = font.render("Fail", True, RED)
     screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2))
 
@@ -51,7 +43,39 @@ def pseudo_ai(paddle, ball):
     else:
         return 1
 
-def game_loop():
+def print_game_status(seed, fps, simulation_only, iteration, generation, score, reward=None, full=False):
+    # print game status
+    if full:
+        print("Game status:")
+        print("  - Player: {}".format(PLAYER))
+        print("  - Seed: {}".format(seed))
+        print("  - FPS: {}".format(fps))
+        print("  - Simulation only: {}".format(simulation_only))
+        print("  - Iteration: {}".format(iteration))
+        print("  - Generation: {}".format(generation))
+        print("  - Score: {}".format(score))
+        print("  - Paddle size: {}x{}".format(PADDLE_W, PADDLE_H))
+        print("  - Ball size: {}".format(BALL_SIZE))
+        print("  - Screen size: {}x{}".format(WIDTH, HEIGHT))
+        if reward is not None:
+            print("  - Reward: {}".format(reward))
+    else:
+        if reward is None:
+            print("Game status: It: {} - Gen: {} - Score: {}".format(iteration, generation, score))
+        else:
+            print("Game status: It: {} - Gen: {} - Score: {} - Reward: {}".format(iteration, generation, score, reward))
+
+
+def game_loop(simulation_only=False, fps=60, verbose=False):
+    # Pygame Initialization
+
+    pygame.init()
+    FONT = pygame.font.Font(None, FONT_SIZE)
+
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    clock = pygame.time.Clock()
+    font = FONT
+
     score = 0
     running = True
     generation = 0
@@ -60,6 +84,10 @@ def game_loop():
     agent = DQNAgent()
     seed = 0
     np.random.seed(seed)
+
+    iteration = 0
+
+    if verbose: print_game_status(seed, fps, simulation_only, iteration, generation, score, full=True)
 
     while running:
         done = False
@@ -71,7 +99,8 @@ def game_loop():
         score = 0
         game_over_flag = False
         while not game_over_flag:
-            screen.fill((0, 0, 0))
+            if not simulation_only:
+                screen.fill((0, 0, 0))
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -99,31 +128,37 @@ def game_loop():
             done = ball.x < 0
 
             collided = ball.check_collision(paddle)
+            next_state = np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy])
+            reward = 1 if collided else -1 if done else 0
 
             if PLAYER == "RL-AGENT":
-                next_state = np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy])
-                reward = 1 if collided else -1 if done else 0
                 agent.update(state, action, reward, next_state, done)
 
             score += (1 if collided else 0)
 
             if done:
                 generation += 1
-                game_over()
-                pygame.display.update()
-                time.sleep(0.2)
+                if not simulation_only:
+                    game_over(screen, font)
+                    pygame.display.update()
+                    time.sleep(0.2)
                 game_over_flag = True
                 done = False
 
-            paddle.draw()
-            ball.draw()
-            draw_header(score, generation)
-            pygame.display.flip()
+            if verbose: print_game_status(seed, fps, simulation_only, iteration, generation, score, reward, full=False)
 
-            clock.tick(FPS)
+            if not simulation_only:
+                paddle.draw()
+                ball.draw()
+                draw_header(screen, font, score, generation)
+                pygame.display.flip()
+
+                clock.tick(fps)
+
+            iteration +=1
 
     pygame.quit()
 
 
 if __name__ == "__main__":
-    game_loop()
+    game_loop(simulation_only=False, fps=60, verbose=False)
