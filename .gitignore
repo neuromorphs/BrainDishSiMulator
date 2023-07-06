@@ -3,3 +3,4 @@ data/article_data/*.csv
 data/*.pkl
 data/*.csv
 *venv*
+*__py*
