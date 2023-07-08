@@ -98,3 +98,30 @@ def neg_norm_data(data):
     normalized_data = (data - np.min(data)) / (np.max(data) - np.min(data)) # Normalizing between 0 and 1
     normalized_data = (normalized_data * 2) - 1 # Shifting the range to -1 and 1
     return normalized_data
+
+
+# ---------------------------------------------------------------
+# Plotting Functions
+# ---------------------------------------------------------------
+def plot_loss_accs(losses, accs, test_accs) :
+    fig, axs = plt.subplots(figsize = (12,6), ncols = 2)
+
+    axs[0].plot(losses, c = 'k', label = 'Loss')
+    axs[0].set_title('Losses')
+    axs[0].set_xlabel('Epochs')
+    axs[0].set_ylabel('Loss')
+
+    axs[1].plot(accs, c = 'b', label = 'Train accuracy')
+    axs[1].plot(test_accs, c = 'r', label = 'Test accuracy')
+    axs[1].set_title('Accuracies')
+    axs[1].set_xlabel('Epochs')
+    axs[1].set_ylabel('Accuracy')
+
+    for ax in axs :
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.legend()
+        ax.tick_params(axis='both', which='major', labelsize=12)
+        
+    fig.tight_layout()
+    plt.show()
