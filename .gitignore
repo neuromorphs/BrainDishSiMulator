@@ -4,3 +4,4 @@ data/*.pkl
 data/*.csv
 *venv*
 *__py*
+*.json
