@@ -55,7 +55,7 @@ class PCNet_Bogacz(object):
                 fixed_predictions, update_weights_flag,
                 weight_clamp, pi_lr, pi_clamp,
                 mu_clamp, do_pi, device,
-                dtype = torch.float64):
+                dtype = torch.float64, mode = 'acc'):
 
         self.layers = layers  # list of layers in the network
         self.batch_size = batch_size  # batch size
@@ -78,6 +78,8 @@ class PCNet_Bogacz(object):
         self.dtype = dtype
         self.inited_pi = False  # switches off after precision init
 
+        self.mode = mode 
+        
         # Initialize the lists of values
         self.L = len(self.layers)
         self.outs = [[] for i in range(self.L + 1)]  # forward activations
@@ -146,7 +148,12 @@ class PCNet_Bogacz(object):
             squared_L += l
 
         # Compute the accuracy of the model
-        acc = utils_pcn.accuracy(nograd_forward(self, inp), label)
+        if self.mode == 'acc' :
+            acc = utils_pcn.accuracy(nograd_forward(self, inp), label)
+        elif self.mode == 'mse' :
+            acc = ((self.mus[-1]-self.outs[-1])**2).mean()
+        else :
+            print('Running mode not recognized : %s' % self.mode)
 
         # Return the Free Energy and accuracy
         return squared_L.cpu().item(), acc
@@ -215,12 +222,49 @@ def train(model, trainset, testset, n_epochs):
             # self.save_model(model = model, precision_type = precision_type)
     return losses, accs, test_accs
 
+def train_mse(model, inputs_dataloader, outputs_dataloader,
+            test_inputs_dataloader, test_outputs_dataloader,
+            n_epochs):
+    with torch.no_grad():
+        losses = []
+        accs = [] # here they are actually mse but I don't have the time to change it 
+        test_accs = []
+        for epoch in tqdm(range(n_epochs), total=n_epochs, desc='Training...', position=0, leave=True):
+            losslist, acclist = [], []
+            for inputs, targets in zip(inputs_dataloader, outputs_dataloader):
+                # Transpose inputs and targets to match batch_size x n_neurons
+                inputs = inputs.T.to(model.device)
+                targets = targets.T.to(model.device)
+
+                squared_L, acc = model.run_pc(inputs, targets)
+
+                losslist.append(squared_L)
+                acclist.append(acc)
+
+            losses.append(np.mean(np.array(losslist)))
+            accs.append(np.mean(np.array(acclist)))
+
+            #print('Avg loss on epoch %s' % self.losses[-1])
+            #print('Avg acc on epoch %s' % self.accs[-1])
+
+            mean_test_acc, _ = test_accuracy_mse(model, test_inputs_dataloader, test_outputs_dataloader)
+            test_accs.append(mean_test_acc)
+            # self.save_model(model = model, precision_type = precision_type)
+    return losses, accs, test_accs
+
+
 # Forward through the network without gradient computation
 def nograd_forward(model, x):
     with torch.no_grad():
         for i, l in enumerate(model.layers):
             x = l.forward(x)
         return x
+    
+def mse_nograd_forward(model, x, y):
+    with torch.no_grad():
+        for i, l in enumerate(model.layers):
+            x = l.forward(x)
+        return ((x-y)**2).mean()
 
 # Save the model
 def save_model(model, precision_type):
@@ -238,4 +282,17 @@ def test_accuracy(model, testset):
         pred_y = nograd_forward(model, inp.to(model.device, dtype = model.dtype))
         acc = utils_pcn.accuracy(pred_y, utils_pcn.onehot(label, model.device).to(model.device))
         accs.append(acc)
+    return np.mean(np.array(accs)), accs
+
+def test_accuracy_mse(model, inputs_dataloader, outputs_dataloader):
+    accs = []
+    for inputs, targets in zip(inputs_dataloader, outputs_dataloader):
+        # Transpose inputs and targets to match batch_size x n_neurons
+        inputs = inputs.T.to(model.device)
+        targets = targets.T.to(model.device)
+            
+        mse = mse_nograd_forward(model,
+                                inputs.to(model.device, dtype = model.dtype), 
+                                targets.to(model.device, dtype = model.dtype))
+        accs.append(mse)
     return np.mean(np.array(accs)), accs
