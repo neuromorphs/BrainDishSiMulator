@@ -98,6 +98,7 @@ class PCNet_Bogacz(object):
     def run_pc(self, inp, label):
         # Set the initial value neurons for input and label
         inp = inp.to(self.dtype)
+        #print(inp.shape)
         self.mus[0] = inp.clone()
         for i in range(1, self.L):
             self.mus[i] = self.layers[i - 1].forward(self.mus[i - 1])
@@ -233,8 +234,8 @@ def train_mse(model, inputs_dataloader, outputs_dataloader,
             losslist, acclist = [], []
             for inputs, targets in zip(inputs_dataloader, outputs_dataloader):
                 # Transpose inputs and targets to match batch_size x n_neurons
-                inputs = inputs.T.to(model.device)
-                targets = targets.T.to(model.device)
+                inputs = inputs.to(model.device)
+                targets = targets.to(model.device)
 
                 squared_L, acc = model.run_pc(inputs, targets)
 
@@ -242,7 +243,7 @@ def train_mse(model, inputs_dataloader, outputs_dataloader,
                 acclist.append(acc)
 
             losses.append(np.mean(np.array(losslist)))
-            accs.append(np.mean(np.array(acclist)))
+            accs.append(np.mean(np.array([x.cpu().numpy() for x in acclist])))
 
             #print('Avg loss on epoch %s' % self.losses[-1])
             #print('Avg acc on epoch %s' % self.accs[-1])
@@ -288,11 +289,11 @@ def test_accuracy_mse(model, inputs_dataloader, outputs_dataloader):
     accs = []
     for inputs, targets in zip(inputs_dataloader, outputs_dataloader):
         # Transpose inputs and targets to match batch_size x n_neurons
-        inputs = inputs.T.to(model.device)
-        targets = targets.T.to(model.device)
+        inputs = inputs.to(model.device)
+        targets = targets.to(model.device)
             
         mse = mse_nograd_forward(model,
                                 inputs.to(model.device, dtype = model.dtype), 
                                 targets.to(model.device, dtype = model.dtype))
-        accs.append(mse)
+        accs.append(mse.cpu().numpy())
     return np.mean(np.array(accs)), accs
