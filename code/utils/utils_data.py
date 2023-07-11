@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 import matplotlib.pyplot as plt
 import pandas as pd
 from tqdm import tqdm
@@ -7,7 +8,7 @@ import h5py
 import os 
 from typing import Dict, List, Any, Tuple
 
-import utils_events 
+import utils_events, utils_tensor 
 
 def read_maxwell_h5(data_path: str) -> pd.DataFrame:
     """
@@ -249,3 +250,61 @@ def get_electrode_regions(data, spiketimes, do_plot=False):
         plt.show()
 
     return sensory_spikes, up1_spikes, up2_spikes, down1_spikes, down2_spikes
+
+
+def get_all_spikes_time_window(start_time_window, end_time_window, binsize, chip_ids, chip_sessions, data_path, array_size, fs) :
+    all_sensory_spikes = []
+    all_motor_spikes = []
+    all_up_spikes, all_down_spikes = [], []
+
+    for i_chipid, chip_id in enumerate(chip_ids):
+        for i_chip_session, chip_session in enumerate(chip_sessions):
+            print('Loading for chip {}, session {}'.format(chip_id, chip_session))
+            try:
+                data_subset, events = load_file(chip_id, chip_session, data_path)
+            except:
+                print(f'>>Could not load chip {chip_id}, session {chip_session}<<')
+                print('------------------------\n')
+                continue
+            spiketimes = get_spiketimes(data_subset, array_size,fs)
+            sensory_spikes, up1_spikes, up2_spikes, down1_spikes, down2_spikes = get_electrode_regions(data_subset, spiketimes, do_plot = False)
+
+            all_spikes = [sensory_spikes, up1_spikes, up2_spikes, down1_spikes, down2_spikes]
+            max_time_ms = max(max(max(spikes) for spikes in spike_list)*1000 for spike_list in all_spikes)
+
+            sensory_spikes_binned = utils_tensor.spike_times_to_bins(sensory_spikes, binsize, max_time_ms, spike_tag = 'sensory')
+            up1_spikes_binned = utils_tensor.spike_times_to_bins(up1_spikes, binsize, max_time_ms, spike_tag = 'up1')
+            down1_spikes_binned = utils_tensor.spike_times_to_bins(down1_spikes, binsize, max_time_ms, spike_tag='down1')
+            up2_spikes_binned = utils_tensor.spike_times_to_bins(up2_spikes, binsize, max_time_ms, spike_tag = 'up2')
+            down2_spikes_binned = utils_tensor.spike_times_to_bins(down2_spikes, binsize, max_time_ms, spike_tag = 'down2')
+
+            # Determine how many bins correspond to the desired time window
+            start_window_bins = int(start_time_window / (binsize/1000))
+            end_window_bins = int(end_time_window / (binsize/1000))
+            
+            # Slice the tensors
+            sensory_spikes_binned = sensory_spikes_binned[:,start_window_bins:end_window_bins]
+            motor_spikes_binned = torch.cat([up1_spikes_binned[:,start_window_bins:end_window_bins], 
+                                            down1_spikes_binned[:,start_window_bins:end_window_bins], 
+                                            up2_spikes_binned[:,start_window_bins:end_window_bins], 
+                                            down2_spikes_binned[:,start_window_bins:end_window_bins]], dim = 0)
+            up_spikes_binned = torch.cat([up1_spikes_binned[:,start_window_bins:end_window_bins],
+                                        up2_spikes_binned[:,start_window_bins:end_window_bins]], dim = 0)
+            down_spikes_binned = torch.cat([down1_spikes_binned[:,start_window_bins:end_window_bins],
+                                        down2_spikes_binned[:,start_window_bins:end_window_bins]], dim = 0)
+
+            # Add the binned spikes to their respective lists
+            all_sensory_spikes.append(sensory_spikes_binned)
+            all_motor_spikes.append(motor_spikes_binned)
+            all_up_spikes.append(up_spikes_binned)
+            all_down_spikes.append(down_spikes_binned)
+            
+            print('------------------------\n')
+
+    # Concatenate all sensory and motor binned spikes into two separate tensors
+    sensory_spikes_binned = torch.cat(all_sensory_spikes, dim=1)
+    motor_spikes_binned = torch.cat(all_motor_spikes, dim=1)
+    up_spikes_binned = torch.cat(all_up_spikes, dim=1) # these two only come in handy later
+    down_spikes_binned = torch.cat(all_down_spikes, dim=1)
+    
+    return sensory_spikes_binned, motor_spikes_binned, up_spikes_binned, down_spikes_binned

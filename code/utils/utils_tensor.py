@@ -78,3 +78,19 @@ class CustomDataset(Dataset):
 
     def __getitem__(self, idx):
         return torch.tensor(self.data[:, idx, :], dtype=torch.float32), torch.tensor(self.labels[idx], dtype=torch.long)
+    
+    
+class NormalizeDataset(Dataset):
+    def __init__(self, tensor):
+        self.tensor = tensor
+        '''min_val = torch.min(tensor)
+        max_val = torch.max(tensor)
+        tensor = 2 * (tensor - min_val) / (max_val - min_val) - 1'''
+        
+    def __len__(self):
+        return self.tensor.shape[1]
+
+    def __getitem__(self, index):
+        sample = self.tensor[:, index]
+
+        return sample
