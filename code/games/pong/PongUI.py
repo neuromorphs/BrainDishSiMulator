@@ -9,8 +9,8 @@ from controls import Paddle, Ball
 import sys
 
 sys.path.append("../../")
-from models.rl_agents import DQNAgent, DQN8Agent, ConvDQNAgent, ConvDQNCaptureAgent
-from models.lif_agents import LIFDQNAgent
+from models.rl_agents import DQNAgent, DQN8Agent, ConvDQNAgent, ConvDQNCaptureAgent, IFELSEAgent
+from models.lif_agents import LIFDQNAgent, LIFELSEAgent
 import time
 import json
 import argparse
@@ -35,6 +35,26 @@ RESULT_FOLDER = None
 
 CAPTURE_FOLDER = "captures"
 os.makedirs(CAPTURE_FOLDER, exist_ok=True)
+
+
+def draw_weights(screen, agent, w_size=50):
+    if agent is None:
+        return
+    weights = agent.get_weights()
+    # plot the weights of each layer on the right side of the screen
+    for i in range(len(weights)):
+        w = weights[i]
+        # plot the weight matrix as an image
+        wimg = w.detach().numpy()
+        print(wimg)
+        wimg = np.uint8(255 * (wimg - wimg.min()) / (wimg.max() - wimg.min()))
+        wimg = cv2.resize(wimg, (w_size, w_size), interpolation=cv2.INTER_NEAREST)
+        wimg = np.repeat(wimg[:, :, np.newaxis], 3, axis=2)
+        wimg = pygame.surfarray.make_surface(wimg)
+        screen.blit(wimg, (WIDTH - w_size, HEIGHT- (i+1)*w_size - (i+1)*10))
+
+
+
 
 
 def get_40x40_env_status(screen):
@@ -108,12 +128,15 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
         agent = DQN8Agent(seed, num_inputs=num_inputs, num_outputs=num_actions)
     elif PLAYER == "DQN8-onlypos":
         agent = DQN8Agent(seed, num_inputs=3, num_outputs=num_actions)
-    elif PLAYER == "LIFDQN":
-        agent = LIFDQNAgent(seed, num_inputs=3, num_outputs=num_actions)
+    elif PLAYER == "DQN-LIF":
+        agent = LIFDQNAgent(seed, num_inputs=5, num_outputs=num_actions, )
     elif PLAYER == "HUMAN":
         agent = None
     elif PLAYER == "PSEUDO-AI":
-        agent = None
+        agent = IFELSEAgent(seed)
+    elif PLAYER == "LIFELSE":
+        agent = LIFELSEAgent(seed, num_inputs=2, num_outputs=num_actions,
+                             tau_mem=2e-3, tau_syn=10e-3)
     else:
         raise ValueError("Player type not supported")
     # save_config in json
@@ -186,14 +209,6 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
                 action = pseudo_ai(paddle, ball)
                 paddle.move(action)
 
-            elif PLAYER.startswith("DQN"):  # valid for DQN, DQN8, DQN8-onlypos
-                state = np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy])
-                action = agent.get_action(state)
-
-                # controller action
-                controller_action = 1 if action == 1 else -1
-                paddle.move(controller_action)
-
             elif PLAYER == "ConvDQN":
                 previous_state = np.asarray(next_state)
                 if len(previous_state.shape) != 1:
@@ -207,6 +222,14 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
                 state = capture - last_capture
                 action = agent.get_action(state)
                 last_capture = capture
+
+                # controller action
+                controller_action = 1 if action == 1 else -1
+                paddle.move(controller_action)
+
+            else:  # valid for DQN, DQN8, DQN8-onlypos
+                state = np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy])
+                action = agent.get_action(state)
 
                 # controller action
                 controller_action = 1 if action == 1 else -1
@@ -235,13 +258,13 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
                     pygame.display.update()
                     time.sleep(0.2)
                 game_over_flag = True
-                done = False
 
             if verbose > 1: print_game_status(seed, fps, simulation_only, iteration, episode, score, reward, full=False)
             if not simulation_only:
                 paddle.draw()
                 ball.draw()
                 draw_header(screen, font, score, episode)
+                draw_weights(screen, agent)
                 pygame.display.flip()
 
                 clock.tick(fps)
@@ -258,21 +281,25 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
                 capture = np.expand_dims(capture, axis=-1)
 
             # RL Phase
-            if PLAYER.startswith("DQN"):  # valid for DQN, DQN8, DQN8-onlypos
-                next_state = np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy])
-                agent.update(state, action, reward, next_state, done)
-
-            elif PLAYER == "ConvDQN":
-                next_state = [np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy]),
-                              state[0]]
-                agent.update(state, action, reward, next_state, done)
-
             if PLAYER == "ConvDQNCapture":
                 next_capture = get_40x40_env_status(screen)
                 next_capture = cv2.cvtColor(next_capture, cv2.COLOR_BGR2GRAY)
                 next_capture = np.expand_dims(next_capture, axis=-1)
                 next_state = next_capture - capture
                 agent.update(state, action, reward, next_state, done)
+
+
+            elif PLAYER == "ConvDQN":
+                next_state = [np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy]),
+                              state[0]]
+                agent.update(state, action, reward, next_state, done)
+
+            else:  # valid for DQN, DQN8, DQN8-onlypos
+                next_state = np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy])
+                agent.update(state, action, reward, next_state, done)
+
+
+
 
             iteration += 1
 

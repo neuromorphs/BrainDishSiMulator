@@ -2,17 +2,17 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import random
-from layers.LIF import LIF
+from .layers.LIF import LIF
+import numpy as np
 
 
 # define LIFNetwork as e sequence of LIF neurons
 class LIFNetwork(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, tau_mem=2e-3, tau_syn=1e-3, dt=1e-3, beta=20.0):
+    def __init__(self, input_size, hidden_size, output_size, tau_mem=20e-3, tau_syn=10e-3, dt=1e-3, beta=20.0):
         super(LIFNetwork, self).__init__()
-        self.fc1 = LIF(input_size, hidden_size, tau_mem, tau_syn, dt, beta, reset_states=True)
-        self.fc2 = LIF(hidden_size, output_size, tau_mem=10e-3, tau_syn=tau_syn, dt=dt, beta=20, monitor="mem",
+        self.fc1 = LIF(input_size, hidden_size, tau_mem=tau_mem, tau_syn=tau_syn, dt=dt, beta=beta, reset_states=True)
+        self.fc2 = LIF(hidden_size, output_size, tau_mem=10e-3, tau_syn=tau_syn, dt=dt, beta=beta, monitor="mem",
                        reset_states=True)
-        self.avg = nn.AvgPool2d(10, 1)
         self.threshold = 1.0
         self.tau_mem = tau_mem
         self.tau_syn = tau_syn
@@ -22,7 +22,20 @@ class LIFNetwork(nn.Module):
     def forward(self, x):
         x = self.fc1(x)
         x = self.fc2(x)
+        x = torch.nn.AvgPool2d((10,1))(x)
+        # remove second axis
+        #x = x.squeeze(1)
         return x
+
+
+
+    def reset_states(self):
+        self.fc1.reset_states()
+        self.fc2.reset_states()
+
+    def get_weights(self):
+        return [self.fc1.get_weights(), self.fc2.get_weights()]
+
 
 class ReplayBuffer:
     def __init__(self, capacity):
@@ -40,20 +53,35 @@ class ReplayBuffer:
     def sample(self, batch_size):
         return random.sample(self.buffer, batch_size)
 
+    def clear(self):
+        self.buffer = []
+        self.position = 0
+
     def __len__(self):
         return len(self.buffer)
 
 
 class LIFDQNAgent:
-    def __init__(self, input_size, hidden_size, output_size, buffer_capacity=10000, batch_size=32, gamma=0.99, lr=0.001, simulation_timesteps=10):
+    def __init__(self, seed, num_inputs, num_outputs, buffer_capacity=10000,
+                 batch_size=1, gamma=0.99, lr=1e-3, simulation_timesteps=10,
+                 tau_mem=20e-3, tau_syn=10e-3, dt=1e-3, beta=20.0):
+        self.seed = seed
+        random.seed(seed)
+        torch.manual_seed(seed)
+
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.input_size = input_size
-        self.output_size = output_size
+        self.input_size = num_inputs
+        self.output_size = num_outputs
         self.batch_size = batch_size
         self.gamma = gamma
 
-        self.online_network = LIFNetwork(input_size, hidden_size, output_size).to(self.device)
-        self.target_network = LIFNetwork(input_size, hidden_size, output_size).to(self.device)
+        self.online_network = LIFNetwork(num_inputs, 1, num_outputs, tau_mem=tau_mem,
+                                         tau_syn=tau_syn, dt=dt, beta=beta
+                                         ).to(self.device)
+        self.target_network = LIFNetwork(num_inputs, 1, num_outputs,
+                                         tau_mem=tau_mem, tau_syn=tau_syn,
+                                         dt=dt, beta=beta,
+                                         ).to(self.device)
         self.simulation_timesteps = simulation_timesteps
         self.target_network.load_state_dict(self.online_network.state_dict())
         self.target_network.eval()
@@ -61,18 +89,24 @@ class LIFDQNAgent:
         self.buffer = ReplayBuffer(buffer_capacity)
         self.optimizer = optim.Adam(self.online_network.parameters(), lr=lr)
 
-    def select_action(self, state):
+    def get_action(self, state):
         state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
 
+        state = state/600
+
         # repeat state for 10 timesteps
-        scale = 100
-        state = state.repeat(1, self.simulation_timesteps, 1) * scale
+        state = state.repeat(1, self.simulation_timesteps, 1)
 
         with torch.no_grad():
             q_values = self.online_network(state)
             argmax = q_values.sum(1).argmax(1)
             action = argmax[0].item()
         return action
+
+    def update(self, state, action, reward, next_state, done):
+        self.store_transition(state, action, next_state, reward, done)
+        self.update_network()
+        self.update_target_network()
 
     def store_transition(self, state, action, next_state, reward, done):
         transition = (state, action, next_state, reward, done)
@@ -92,14 +126,18 @@ class LIFDQNAgent:
         dones = torch.BoolTensor(batch[4]).unsqueeze(1).to(self.device)
 
         # repeat state for 10 timesteps
-        scale = 100
-        states = states.unsqueeze(1).repeat(1, self.simulation_timesteps, 1) * scale
-        next_states = next_states.unsqueeze(1).repeat(1, self.simulation_timesteps, 1) * scale
+        states = states.unsqueeze(1).repeat(1, self.simulation_timesteps, 1)
+        next_states = next_states.unsqueeze(1).repeat(1, self.simulation_timesteps, 1)
         q_values = self.online_network(states).sum(1)
         q_values = q_values.gather(1, actions)
         with torch.no_grad():
             next_q_values = self.target_network(next_states).sum(1).max(1)[0].unsqueeze(1)
             target_q_values = rewards + self.gamma * next_q_values * (~dones)
+            if dones[0]:
+                print("=========================================","done")
+            #   self.target_network.reset_states()
+            #  self.online_network.reset_states()
+
         loss = nn.MSELoss()(q_values, target_q_values)
 
         self.optimizer.zero_grad()
@@ -116,3 +154,124 @@ class LIFDQNAgent:
         self.online_network.load_state_dict(torch.load(path))
         self.target_network.load_state_dict(self.online_network.state_dict())
         self.target_network.eval()
+
+    def get_weights(self):
+        weights = self.online_network.get_weights()
+        return weights
+
+
+
+class LIFELSEAgent:
+    def __init__(self, seed, num_inputs, num_outputs, buffer_capacity=10000,
+                 batch_size=1, gamma=0.99, lr=1e-2, simulation_timesteps=10,
+                 tau_mem=20e-3, tau_syn=10e-3, dt=1e-3, beta=20.0):
+        self.seed = seed
+        random.seed(seed)
+        torch.manual_seed(seed)
+        self.scale =40.0
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.input_size = num_inputs
+        self.output_size = num_outputs
+        self.batch_size = batch_size
+        self.gamma = gamma
+
+        self.online_network = LIFNetwork(num_inputs, 1, num_outputs, tau_mem=tau_mem,
+                                         tau_syn=tau_syn, dt=dt, beta=beta
+                                         ).to(self.device)
+        self.target_network = LIFNetwork(num_inputs, 1, num_outputs,
+                                         tau_mem=tau_mem, tau_syn=tau_syn,
+                                         dt=dt, beta=beta,
+                                         ).to(self.device)
+        self.simulation_timesteps = simulation_timesteps
+        self.target_network.load_state_dict(self.online_network.state_dict())
+        self.target_network.eval()
+
+        self.buffer = ReplayBuffer(buffer_capacity)
+        self.optimizer = optim.Adam(self.online_network.parameters(), lr=lr)
+
+    def clamp_parameters(self, min_value=-1.0, max_value=1.0):
+        for param in self.online_network.parameters():
+            param.data.clamp_(min_value, max_value)
+        for param in self.target_network.parameters():
+            param.data.clamp_(min_value, max_value)
+
+
+    def get_action(self, state):
+        state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+
+        # take values 0,2
+        state = state[:,[0,2]] / self.scale
+
+        # repeat state for 10 timesteps
+        state = state.repeat(1, self.simulation_timesteps, 1)
+        #state[:,1:,:] = 0
+
+        with torch.no_grad():
+            q_values = self.online_network(state)
+            argmax = q_values.sum(1).argmax(1)
+            action = argmax[0].item()
+        return action
+
+    def update(self, state, action, reward, next_state, done):
+        state = state[[0,2]] / self.scale
+        next_state = next_state[[0,2]] /self.scale
+        self.store_transition(state, action, next_state, reward, done)
+        self.update_network()
+        self.update_target_network()
+
+    def store_transition(self, state, action, next_state, reward, done):
+        transition = (state, action, next_state, reward, done)
+        self.buffer.push(transition)
+
+    def update_network(self):
+        if len(self.buffer) < self.batch_size:
+            return
+
+        transitions = self.buffer.sample(self.batch_size)
+        batch = list(zip(*transitions))
+
+        states = torch.FloatTensor(batch[0]).to(self.device)
+        actions = torch.LongTensor(batch[1]).unsqueeze(1).to(self.device)
+        next_states = torch.FloatTensor(batch[2]).to(self.device)
+        rewards = torch.FloatTensor(batch[3]).unsqueeze(1).to(self.device)
+        dones = torch.BoolTensor(batch[4]).unsqueeze(1).to(self.device)
+
+        # repeat state for 10 timesteps
+        states = states.unsqueeze(1).repeat(1, self.simulation_timesteps, 1)
+        next_states = next_states.unsqueeze(1).repeat(1, self.simulation_timesteps, 1)
+
+        #states[:, 1:, :] = 0
+        #next_states[:, 1:, :] = 0
+
+        q_values = self.online_network(states).sum(1)
+        q_values = q_values.gather(1, actions)
+        with torch.no_grad():
+            next_q_values = self.target_network(next_states).sum(1).max(1)[0].unsqueeze(1)
+            target_q_values = rewards + self.gamma * next_q_values * (~dones)
+            if dones[0]:
+                print("=========================================", "done")
+            #   self.target_network.reset_states()
+            #  self.online_network.reset_states()
+
+        loss = nn.MSELoss()(q_values, target_q_values)
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        self.buffer.clear()
+
+    def update_target_network(self):
+        self.target_network.load_state_dict(self.online_network.state_dict())
+
+    def save_model(self, path):
+        torch.save(self.online_network.state_dict(), path)
+
+    def load_model(self, path):
+        self.online_network.load_state_dict(torch.load(path))
+        self.target_network.load_state_dict(self.online_network.state_dict())
+        self.target_network.eval()
+
+    def get_weights(self):
+        weights = self.online_network.get_weights()
+        return weights

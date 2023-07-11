@@ -101,8 +101,8 @@ class LIF(nn.Module):
             else:
                 new_out = new_mem
 
-            self.syn = new_syn
-            self.mem = new_mem
+            self.syn = new_syn.clone()
+            self.mem = new_mem.clone()
 
             mem_store.append(new_mem)
             syn_store.append(new_syn)
@@ -114,7 +114,11 @@ class LIF(nn.Module):
 
         return mem_store, syn_store, out_store, ops_entry
 
+    def get_weights(self):
+        return self.w.clone()
+
     def forward(self, inputs):
+
         U, I, O, ops = self.simulate(inputs)
 
         if self.monitor == "mem":
