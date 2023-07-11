@@ -5,8 +5,8 @@ from .activations import SuperSpike
 
 class LIF(nn.Module):
     def __init__(self, input_features, output_features, dt, tau_mem=10e-3, tau_syn=5e-3,
-                 kernel_initializer="random_normal",
-                 monitor="out", initial_state=0, use_bias=False, reset_states=False, **args):
+                 kernel_initializer="he_normal",
+                 monitor="out", initial_state=0, use_bias=False, reset=False, **args):
         """
         Simple feed-fordward spiking layer for spiking neural networks
         """
@@ -24,7 +24,7 @@ class LIF(nn.Module):
         self.tau_syn_w = tau_syn
         self.syn = None
         self.mem = None
-        self.reset_states = reset_states
+        self.reset = reset
 
         self.activation = SuperSpike
         self.kernel_initializer = kernel_initializer
@@ -38,6 +38,13 @@ class LIF(nn.Module):
         self.threshold = 1.0
 
         self.w = nn.Parameter(torch.randn((self.input_features, self.output_features), requires_grad=True))
+
+        if self.kernel_initializer == "he_normal":
+            nn.init.kaiming_uniform_(self.w, a=0, mode='fan_in', nonlinearity='relu')
+        if self.kernel_initializer == "zeros":
+            self.w = nn.Parameter(torch.zeros((self.input_features, self.output_features), requires_grad=True))
+
+
         if self.use_bias:
             self.bias = nn.Parameter(torch.zeros(self.output_features, requires_grad=True))
 
@@ -116,6 +123,10 @@ class LIF(nn.Module):
 
     def get_weights(self):
         return self.w.clone()
+
+    def reset_states(self):
+        self.syn = None
+        self.mem = None
 
     def forward(self, inputs):
 

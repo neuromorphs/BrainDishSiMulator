@@ -46,7 +46,6 @@ def draw_weights(screen, agent, w_size=50):
         w = weights[i]
         # plot the weight matrix as an image
         wimg = w.detach().numpy()
-        print(wimg)
         wimg = np.uint8(255 * (wimg - wimg.min()) / (wimg.max() - wimg.min()))
         wimg = cv2.resize(wimg, (w_size, w_size), interpolation=cv2.INTER_NEAREST)
         wimg = np.repeat(wimg[:, :, np.newaxis], 3, axis=2)
@@ -135,8 +134,8 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
     elif PLAYER == "PSEUDO-AI":
         agent = IFELSEAgent(seed)
     elif PLAYER == "LIFELSE":
-        agent = LIFELSEAgent(seed, num_inputs=2, num_outputs=num_actions,
-                             tau_mem=2e-3, tau_syn=10e-3)
+        agent = LIFELSEAgent(seed, num_inputs=2, num_outputs=num_actions, hidden_units = [4], gamma=0.99,
+                             tau_mem=5e-3, tau_syn=10e-3, lr=1e-2, simulation_timesteps=10, dt=1e-3)
     else:
         raise ValueError("Player type not supported")
     # save_config in json
@@ -295,11 +294,9 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
                 agent.update(state, action, reward, next_state, done)
 
             else:  # valid for DQN, DQN8, DQN8-onlypos
+                print(action)
                 next_state = np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy])
                 agent.update(state, action, reward, next_state, done)
-
-
-
 
             iteration += 1
 
