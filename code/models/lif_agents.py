@@ -5,14 +5,48 @@ import random
 from .layers.LIF import LIF
 import numpy as np
 
+import numpy as np
+from scipy.stats import poisson
+
+def generate_spike_matrix(X, T):
+    spikes = np.zeros((T, len(X)))
+    for t in range(T):
+        for i in range(len(X)):
+            rate = X[i]
+            spikes[t, i] = 1 if np.random.rand() < poisson.pmf(1, rate) else 0
+    return np.asarray(spikes, dtype=np.float32)
+
 
 # define LIFNetwork as e sequence of LIF neurons
 class LIFNetwork(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, tau_mem=20e-3, tau_syn=10e-3, dt=1e-3, beta=20.0):
+    def __init__(self, input_size, hidden_size, output_size, tau_mem=20e-3, tau_syn=10e-3, dt=1e-3, beta=20.0,
+                 reset=False, simulation_timesteps=10):
         super(LIFNetwork, self).__init__()
-        self.fc1 = LIF(input_size, hidden_size, tau_mem=tau_mem, tau_syn=tau_syn, dt=dt, beta=beta, reset_states=True)
-        self.fc2 = LIF(hidden_size, output_size, tau_mem=10e-3, tau_syn=tau_syn, dt=dt, beta=beta, monitor="mem",
-                       reset_states=True)
+
+        self.simulation_timesteps = simulation_timesteps
+        layers = []
+
+        if isinstance(hidden_size, list):
+            for i in range(len(hidden_size)):
+                if i == 0:
+                    layers.append(LIF(input_size, hidden_size[i], tau_mem=tau_mem, tau_syn=tau_syn, dt=dt, beta=beta,
+                                      reset=reset))
+                else:
+                    layers.append(LIF(hidden_size[i - 1], hidden_size[i], tau_mem=tau_mem, tau_syn=tau_syn, dt=dt,
+                                      beta=beta, reset=reset))
+
+            layers.append(LIF(hidden_size[-1], output_size, tau_mem=self.simulation_timesteps*dt, tau_syn=tau_syn, dt=dt, beta=beta, monitor="mem",
+                              reset=reset))  # last layer
+        else:
+            self.fc1 = LIF(input_size, hidden_size, tau_mem=tau_mem, tau_syn=tau_syn, dt=dt, beta=beta,
+                           reset=False)
+            self.fc2 = LIF(hidden_size, output_size, tau_mem=self.simulation_timesteps*dt, tau_syn=tau_syn, dt=dt, beta=beta, monitor="mem",
+                           reset=False)
+            layers.append(self.fc1)
+            layers.append(self.fc2)
+
+        self.layers = layers
+
         self.threshold = 1.0
         self.tau_mem = tau_mem
         self.tau_syn = tau_syn
@@ -20,21 +54,27 @@ class LIFNetwork(nn.Module):
         self.beta = beta
 
     def forward(self, x):
-        x = self.fc1(x)
-        x = self.fc2(x)
-        x = torch.nn.AvgPool2d((10,1))(x)
+        for i in range(len(self.layers)):
+            x = self.layers[i](x)
+        x = torch.nn.AvgPool2d((self.simulation_timesteps, 1))(x)
         # remove second axis
-        #x = x.squeeze(1)
+        # x = x.squeeze(1)
         return x
 
-
-
     def reset_states(self):
-        self.fc1.reset_states()
-        self.fc2.reset_states()
+        for i in range(len(self.layers)):
+            self.layers[i].reset_states()
 
     def get_weights(self):
-        return [self.fc1.get_weights(), self.fc2.get_weights()]
+        return [x.get_weights() for x in self.layers]
+
+    # override parameters() function and return the weights of the network
+    def parameters(self):
+        params = []
+        for layer in self.layers:
+            params+=[param for param in layer.parameters()]
+
+        return params
 
 
 class ReplayBuffer:
@@ -76,11 +116,11 @@ class LIFDQNAgent:
         self.gamma = gamma
 
         self.online_network = LIFNetwork(num_inputs, 1, num_outputs, tau_mem=tau_mem,
-                                         tau_syn=tau_syn, dt=dt, beta=beta
-                                         ).to(self.device)
+                                         tau_syn=tau_syn, dt=dt, beta=beta,
+                                         simulation_timesteps=simulation_timesteps).to(self.device)
         self.target_network = LIFNetwork(num_inputs, 1, num_outputs,
                                          tau_mem=tau_mem, tau_syn=tau_syn,
-                                         dt=dt, beta=beta,
+                                         dt=dt, beta=beta,simulation_timesteps=simulation_timesteps
                                          ).to(self.device)
         self.simulation_timesteps = simulation_timesteps
         self.target_network.load_state_dict(self.online_network.state_dict())
@@ -92,7 +132,7 @@ class LIFDQNAgent:
     def get_action(self, state):
         state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
 
-        state = state/600
+        state = state / 600
 
         # repeat state for 10 timesteps
         state = state.repeat(1, self.simulation_timesteps, 1)
@@ -134,7 +174,7 @@ class LIFDQNAgent:
             next_q_values = self.target_network(next_states).sum(1).max(1)[0].unsqueeze(1)
             target_q_values = rewards + self.gamma * next_q_values * (~dones)
             if dones[0]:
-                print("=========================================","done")
+                print("=========================================", "done")
             #   self.target_network.reset_states()
             #  self.online_network.reset_states()
 
@@ -160,15 +200,14 @@ class LIFDQNAgent:
         return weights
 
 
-
 class LIFELSEAgent:
-    def __init__(self, seed, num_inputs, num_outputs, buffer_capacity=10000,
-                 batch_size=1, gamma=0.99, lr=1e-2, simulation_timesteps=10,
+    def __init__(self, seed, num_inputs, num_outputs, hidden_units = [2], buffer_capacity=10000,
+                 batch_size=1, gamma=0.8, lr=1e-3, simulation_timesteps=100,
                  tau_mem=20e-3, tau_syn=10e-3, dt=1e-3, beta=20.0):
         self.seed = seed
         random.seed(seed)
         torch.manual_seed(seed)
-        self.scale =40.0
+        self.scale = 600.0
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.input_size = num_inputs
@@ -176,13 +215,14 @@ class LIFELSEAgent:
         self.batch_size = batch_size
         self.gamma = gamma
 
-        self.online_network = LIFNetwork(num_inputs, 1, num_outputs, tau_mem=tau_mem,
-                                         tau_syn=tau_syn, dt=dt, beta=beta
-                                         ).to(self.device)
-        self.target_network = LIFNetwork(num_inputs, 1, num_outputs,
+        hid = hidden_units
+        self.online_network = LIFNetwork(num_inputs, hid, num_outputs, tau_mem=tau_mem,
+                                         tau_syn=tau_syn, dt=dt, beta=beta,
+                                         simulation_timesteps=simulation_timesteps).to(self.device)
+        self.target_network = LIFNetwork(num_inputs, hid, num_outputs,
                                          tau_mem=tau_mem, tau_syn=tau_syn,
                                          dt=dt, beta=beta,
-                                         ).to(self.device)
+                                         simulation_timesteps=simulation_timesteps).to(self.device)
         self.simulation_timesteps = simulation_timesteps
         self.target_network.load_state_dict(self.online_network.state_dict())
         self.target_network.eval()
@@ -196,16 +236,17 @@ class LIFELSEAgent:
         for param in self.target_network.parameters():
             param.data.clamp_(min_value, max_value)
 
-
     def get_action(self, state):
         state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
 
         # take values 0,2
-        state = state[:,[0,2]] / self.scale
+        state = state[0, [0, 2]] / self.scale
 
         # repeat state for 10 timesteps
-        state = state.repeat(1, self.simulation_timesteps, 1)
-        #state[:,1:,:] = 0
+        spike_matrix = generate_spike_matrix(state, self.simulation_timesteps)
+
+        state = torch.from_numpy(spike_matrix).unsqueeze(0)#state.repeat(1, self.simulation_timesteps, 1)
+        # state[:,1:,:] = 0
 
         with torch.no_grad():
             q_values = self.online_network(state)
@@ -214,8 +255,9 @@ class LIFELSEAgent:
         return action
 
     def update(self, state, action, reward, next_state, done):
-        state = state[[0,2]] / self.scale
-        next_state = next_state[[0,2]] /self.scale
+        state = state[[0, 2]] / self.scale
+        next_state = next_state[[0, 2]] / self.scale
+
         self.store_transition(state, action, next_state, reward, done)
         self.update_network()
         self.update_target_network()
@@ -237,22 +279,26 @@ class LIFELSEAgent:
         rewards = torch.FloatTensor(batch[3]).unsqueeze(1).to(self.device)
         dones = torch.BoolTensor(batch[4]).unsqueeze(1).to(self.device)
 
-        # repeat state for 10 timesteps
-        states = states.unsqueeze(1).repeat(1, self.simulation_timesteps, 1)
-        next_states = next_states.unsqueeze(1).repeat(1, self.simulation_timesteps, 1)
+        # convert to poissons spikes
+        states = torch.from_numpy(generate_spike_matrix(states[0], self.simulation_timesteps))
+        next_states = torch.from_numpy(generate_spike_matrix(next_states[0], self.simulation_timesteps))
 
-        #states[:, 1:, :] = 0
-        #next_states[:, 1:, :] = 0
+
+        states = states.unsqueeze(0)
+        next_states = next_states.unsqueeze(0)
+
+        # states[:, 1:, :] = 0
+        # next_states[:, 1:, :] = 0
 
         q_values = self.online_network(states).sum(1)
         q_values = q_values.gather(1, actions)
         with torch.no_grad():
             next_q_values = self.target_network(next_states).sum(1).max(1)[0].unsqueeze(1)
-            target_q_values = rewards + self.gamma * next_q_values * (~dones)
+            target_q_values = rewards + self.gamma * next_q_values * (dones)
             if dones[0]:
                 print("=========================================", "done")
-            #   self.target_network.reset_states()
-            #  self.online_network.reset_states()
+                self.target_network.reset_states()
+                self.online_network.reset_states()
 
         loss = nn.MSELoss()(q_values, target_q_values)
 
