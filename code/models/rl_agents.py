@@ -21,7 +21,7 @@ class DQNAgent:
     Reinforcement learning agent using DQN
     """
 
-    def __init__(self, seed=0, num_inputs=5, num_outputs=2, epsilon_decay=0.995):
+    def __init__(self, seed=0, num_inputs=5, hidden=1, num_outputs=2, epsilon_decay=0.995, lr=1e-4):
         """
         DQN Agent
         Args:
@@ -36,11 +36,12 @@ class DQNAgent:
         self.num_outputs = num_outputs
 
         self.model = nn.Sequential(
-            nn.Linear(num_inputs, 1, bias=False),
-            nn.ReLU(),
-            nn.Linear(1, num_outputs, bias=False)
+            nn.Linear(num_inputs, hidden, bias=True),
+            nn.Sigmoid(),
+            nn.Linear(hidden, num_outputs, bias=True),
+            nn.Sigmoid()
         )
-        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-3)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.criterion = nn.MSELoss()
         self.gamma = 0.99  # Discount factor
 
@@ -364,7 +365,7 @@ class ConvDQNCaptureAgent:
             self.epsilon *= self.epsilon_decay
 
 
-class IFELSEAgent:
+class PSEUDOAgent:
     """
     Reinforcement learning agent using DQN
     """

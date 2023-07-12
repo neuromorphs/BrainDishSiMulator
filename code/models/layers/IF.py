@@ -3,14 +3,14 @@ import torch
 import torch.nn as nn
 from .activations import SuperSpike
 
-class LIF(nn.Module):
+class IF(nn.Module):
     def __init__(self, input_features, output_features, dt, tau_mem=10e-3, tau_syn=5e-3,
                  kernel_initializer="random_normal",
-                 monitor="mem", initial_state=0, use_bias=False, reset=False, **args):
+                 monitor="out", initial_state=0, use_bias=False, reset=False, **args):
         """
         Simple feed-fordward spiking layer for spiking neural networks
         """
-        super(LIF, self).__init__()
+        super(IF, self).__init__()
         self.input_features = input_features
         self.output_features = output_features
 
@@ -32,9 +32,6 @@ class LIF(nn.Module):
         self.initial_state = initial_state
         self.monitor = monitor
 
-        self.eta = args.get("eta", 0.5)
-        self.hebbian = args.get("hebbian", False)
-
         if monitor != "out":
             warnings.warn("Monitoring {} instead of output spikes".format(monitor))
 
@@ -47,11 +44,9 @@ class LIF(nn.Module):
             nn.init.kaiming_uniform_(self.w, a=0, mode='fan_in', nonlinearity='relu')
         if self.kernel_initializer == "zeros":
             self.w = nn.Parameter(torch.zeros((self.input_features, self.output_features), requires_grad=True))
-        if self.kernel_initializer == "ones":
-            self.w = nn.Parameter(torch.ones((self.input_features, self.output_features), requires_grad=True))
 
         if self.use_bias:
-            self.bias = nn.Parameter(torch.randn(self.output_features, requires_grad=True))
+            self.bias = nn.Parameter(torch.zeros(self.output_features, requires_grad=True))
 
     def set_tau(self, tau_mem, tau_syn):
         self.tau_mem_w = tau_mem
@@ -104,8 +99,8 @@ class LIF(nn.Module):
         # Here we loop over time
         for t in range(nb_steps - 1):
             # synaptic & membrane dynamics
-            new_syn = self.dcy_syn * self.syn + input[:, t]
-            new_mem = (self.dcy_mem * self.mem + self.scl_mem * self.syn)  # multiplicative reset
+            new_syn = self.syn + input[:, t]
+            new_mem = self.mem + self.syn  # multiplicative reset
 
             if self.activation:
                 new_out, rst = self.get_spike_and_reset(self.mem)
@@ -136,16 +131,7 @@ class LIF(nn.Module):
     def forward(self, inputs):
 
         U, I, O, ops = self.simulate(inputs)
-        """
-        if self.hebbian:
-            pre_synaptic_activity = inputs
-            post_synaptic_activity = O
 
-            if post_synaptic_activity.sum()==0: # no spikes
-                self.w += 0.1
-            else:
-                self.w += self.eta * torch.mm(pre_synaptic_activity.t(), post_synaptic_activity)
-        """
         if self.monitor == "mem":
             return_value = U
         elif self.monitor == "syn":

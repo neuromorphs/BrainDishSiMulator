@@ -11,6 +11,10 @@ import sys
 sys.path.append("../../")
 from models.rl_agents import DQNAgent, DQN8Agent, ConvDQNAgent, ConvDQNCaptureAgent, IFELSEAgent
 from models.lif_agents import LIFDQNAgent, LIFELSEAgent, simple_LIF_else, simple_conductance_LIF
+from models.rl_agents import DQNAgent, DQN8Agent, ConvDQNAgent, ConvDQNCaptureAgent, PSEUDOAgent
+from models.lif_agents import LIFDQNAgent, LIFELSEAgent
+from models.if_agents import IFELSEAgent
+from models.simon_LIF_agent import SimonAgent
 import time
 import json
 import argparse
@@ -35,6 +39,10 @@ RESULT_FOLDER = None
 
 CAPTURE_FOLDER = "captures"
 os.makedirs(CAPTURE_FOLDER, exist_ok=True)
+
+R = 1
+P = -5
+N = 0
 
 
 def draw_weights(screen, agent, w_size=50):
@@ -118,7 +126,7 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
     num_inputs = 5
     num_actions = 2
     if PLAYER == "DQN":
-        agent = DQNAgent(seed, num_inputs=num_inputs, num_outputs=num_actions)
+        agent = DQNAgent(seed, num_inputs=num_inputs, hidden=4, num_outputs=num_actions, lr=1e-3)
     elif PLAYER == "ConvDQN":
         agent = ConvDQNAgent(seed, num_inputs=(40, 40, 1), num_outputs=num_actions)
     elif PLAYER == "ConvDQNCapture":
@@ -132,7 +140,11 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
     elif PLAYER == "HUMAN":
         agent = None
     elif PLAYER == "PSEUDO-AI":
-        agent = IFELSEAgent(seed)
+        agent = PSEUDOAgent(seed)
+    elif PLAYER == "Simon":
+        agent = SimonAgent(seed, num_inputs=2, hidden_units=[8,4], num_outputs=2, lr=1e-4,
+                           reset=False, tau_mem=5e-3, tau_syn=4e-3, use_bias=True, dt=1e-3,
+                           simulation_timesteps=10, gamma=0.99)
     elif PLAYER == "LIFELSE":
         agent = LIFELSEAgent(seed, num_inputs=2, num_outputs=num_actions, hidden_units = [4], gamma=0.99,
                              tau_mem=5e-3, tau_syn=10e-3, lr=1e-2, simulation_timesteps=10, dt=1e-3)
@@ -140,6 +152,9 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
         agent = simple_LIF_else(current_scale=1)
     elif PLAYER == "SIMPLE_COBA" :
         agent = simple_conductance_LIF(conductance = 0.5*5)
+    elif PLAYER == "IFELSE":
+        agent = IFELSEAgent(seed, num_inputs=8, num_outputs=num_actions, hidden_units = 1, gamma=0.99,
+                             lr=1e-2* 1/70, simulation_timesteps=100, dt=1e-3)
     else:
         raise ValueError("Player type not supported")
     # save_config in json
@@ -178,9 +193,9 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
         paddle = Paddle(PADDLE_W, PADDLE_H, screen)
         angle = np.random.choice([45, 135, 225, 315])
         dx = 14
-        dy = 1
+        dy = 0
         while dy<=1 and dy>=-1: # ensure bigger than 1
-            tmp = np.random.uniform()
+            tmp = np.random.uniform() - 0.5
             dy = int(14.0 * tmp - 2.0)
         ball = Ball(screen, dx, dy, BALL_SIZE, ball_speed=BALL_SPEED)
         score = 0
@@ -255,7 +270,13 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
             if collided:
                 event_recording.append({"norm_timestamp": time.time() - init_time, 'event': 'ball return'})
 
-            reward = 1 if collided else -1 if done else 0
+            reward = N
+            if collided:
+                reward = R
+            elif done:
+                reward = P
+            else:
+                reward = N
 
             # update screen and scores
             score += (1 if collided else 0)
