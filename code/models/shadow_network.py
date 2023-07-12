@@ -45,22 +45,23 @@ class LIF_ShadowNetwork:
         self.spikes = []
         
     def get_action(self, state):
+        # Initialize spikes as a numpy array
+        self.spikes = np.zeros((len(self.neurons), max([len(neuron_layer) for neuron_layer in self.neurons])), dtype=np.uint8)
         # Feed input through network
-        spikes = [neuron.step(np.dot(state, self.weights[0][:, i]) + neuron.I_syn) for i, neuron in enumerate(self.neurons[0])]
-        self.spikes.append(spikes)
+        spikes = np.array([neuron.step(np.dot(state, self.weights[0][:, i]) + neuron.I_syn) for i, neuron in enumerate(self.neurons[0])])
+        self.spikes[0, :len(spikes)] = spikes
         for l in range(1, len(self.neurons)):
-            spikes = [neuron.step(np.dot(spikes, self.weights[l][:, i]) + neuron.I_syn) for i, neuron in enumerate(self.neurons[l])]
-            self.spikes.append(spikes)
+            spikes = np.array([neuron.step(np.dot(spikes, self.weights[l][:, i]) + neuron.I_syn) for i, neuron in enumerate(self.neurons[l])])
+            self.spikes[l, :len(spikes)] = spikes
         # Choose action based on output layer
-        #print(np.argmax(spikes))
         if np.argmax(spikes) == 0 :
             return -1 
         else :
             return 1
-        #return np.argmax(spikes)
         
     def get_spikes(self):
         return self.spikes
+
     
 
     def update(self, state, action, reward, next_state, done):
