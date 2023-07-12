@@ -11,6 +11,7 @@ import sys
 sys.path.append("../../")
 from models.rl_agents import DQNAgent, DQN8Agent, ConvDQNAgent, ConvDQNCaptureAgent, IFELSEAgent
 from models.lif_agents import LIFDQNAgent, LIFELSEAgent, simple_LIF_else, simple_conductance_LIF
+from models.shadow_network import LIF_ShadowNetwork
 import time
 import json
 import argparse
@@ -35,71 +36,6 @@ RESULT_FOLDER = None
 
 CAPTURE_FOLDER = "captures"
 os.makedirs(CAPTURE_FOLDER, exist_ok=True)
-
-
-def draw_weights(screen, agent, w_size=50):
-    if agent is None or not hasattr(agent, "get_weights"):
-        return
-    weights = agent.get_weights()
-    # plot the weights of each layer on the right side of the screen
-    for i in range(len(weights)):
-        w = weights[i]
-        # plot the weight matrix as an image
-        wimg = w.detach().numpy()
-        wimg = np.uint8(255 * (wimg - wimg.min()) / (wimg.max() - wimg.min()))
-        wimg = cv2.resize(wimg, (w_size, w_size), interpolation=cv2.INTER_NEAREST)
-        wimg = np.repeat(wimg[:, :, np.newaxis], 3, axis=2)
-        wimg = pygame.surfarray.make_surface(wimg)
-        screen.blit(wimg, (WIDTH - w_size, HEIGHT- (i+1)*w_size - (i+1)*10))
-
-
-
-
-
-def get_40x40_env_status(screen):
-    a = pygame.surfarray.array3d(screen)
-    downscaled = cv2.resize(pygame.surfarray.array3d(screen), (40, 40))
-    return downscaled
-
-
-def draw_header(screen, font, score, generation):
-    score_text = font.render(f"Generation {generation} - Score: {score}", True, WHITE)
-    screen.blit(score_text, (WIDTH - score_text.get_width() - 10, 10))
-
-
-def game_over(screen, font):
-    game_over_text = font.render("Fail", True, RED)
-    screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2))
-
-
-def pseudo_ai(paddle, ball):
-    if paddle.y + PADDLE_H / 2 < ball.y:
-        return -1
-    else:
-        return 1
-
-
-def print_game_status(seed, fps, simulation_only, iteration, generation, score, reward=None, full=False):
-    # print game status
-    if full:
-        print("Game status:")
-        print("  - Player: {}".format(PLAYER))
-        print("  - Seed: {}".format(seed))
-        print("  - FPS: {}".format(fps))
-        print("  - Simulation only: {}".format(simulation_only))
-        print("  - Iteration: {}".format(iteration))
-        print("  - Generation: {}".format(generation))
-        print("  - Score: {}".format(score))
-        print("  - Paddle size: {}x{}".format(PADDLE_W, PADDLE_H))
-        print("  - Ball size: {}".format(BALL_SIZE))
-        print("  - Screen size: {}x{}".format(WIDTH, HEIGHT))
-        if reward is not None:
-            print("  - Reward: {}".format(reward))
-    else:
-        if reward is None:
-            print("Game status: It: {} - Gen: {} - Score: {}".format(iteration, generation, score))
-        else:
-            print("Game status: It: {} - Gen: {} - Score: {} - Reward: {}".format(iteration, generation, score, reward))
 
 
 def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=False):
@@ -135,20 +71,27 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
         agent = IFELSEAgent(seed)
     elif PLAYER == "LIFELSE":
         agent = LIFELSEAgent(seed, num_inputs=2, num_outputs=num_actions, hidden_units = [4], gamma=0.99,
-                             tau_mem=5e-3, tau_syn=10e-3, lr=1e-2, simulation_timesteps=10, dt=1e-3)
+                            tau_mem=5e-3, tau_syn=10e-3, lr=1e-2, simulation_timesteps=10, dt=1e-3)
     elif PLAYER == "SIMPLE_LIFELSE":
         agent = simple_LIF_else(current_scale=1)
     elif PLAYER == "SIMPLE_COBA" :
         agent = simple_conductance_LIF(conductance = 0.5*5)
+    elif PLAYER == "SHADOW_AGENT" :
+        agent =  LIF_ShadowNetwork(seed, num_inputs = 5,
+                                num_outputs = 2,
+                                hidden_units = [16, 8],
+                                tau_mem=5e-2, tau_syn=10e-2,
+                                lr=1e-2, simulation_timesteps=10, dt=1e-3)
     else:
         raise ValueError("Player type not supported")
+    
     # save_config in json
     init_time = time.time()
     config = {
         "player": {"type": PLAYER,
-                   "num_inputs": num_inputs,
-                   "num_actions": num_actions,
-                   "seed": seed},
+                "num_inputs": num_inputs,
+                "num_actions": num_actions,
+                "seed": seed},
         "fps": fps,
         "simulation_only": simulation_only,
         "num_episodes": num_episodes,
@@ -222,9 +165,8 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
                 if len(previous_state.shape) != 1:
                     previous_state = next_state[1]
                 state = [np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy]),
-                         previous_state]
+                        previous_state]
                 action = agent.get_action(state)
-
 
             elif PLAYER == "ConvDQNCapture":
                 state = capture - last_capture
@@ -272,12 +214,11 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
                 paddle.draw()
                 ball.draw()
                 draw_header(screen, font, score, episode)
+                draw_spikes(screen, agent)
                 draw_weights(screen, agent)
                 pygame.display.flip()
 
                 clock.tick(fps)
-
-            if not simulation_only:
                 capture = get_40x40_env_status(screen)
                 # save capture as image
                 if iteration % 100 == 0 and save_capture:
@@ -299,14 +240,14 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
 
             elif PLAYER == "ConvDQN":
                 next_state = [np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy]),
-                              state[0]]
+                            state[0]]
                 agent.update(state, action, reward, next_state, done)
                 
             elif PLAYER == "SIMPLE_LIFELSE" or PLAYER == "SIMPLE_COBA":
                 pass 
 
             else:  # valid for DQN, DQN8, DQN8-onlypos
-                print(action)
+                #print(action)
                 next_state = np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy])
                 agent.update(state, action, reward, next_state, done)
 
@@ -323,6 +264,82 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
     pygame.quit()
 
 
+
+def draw_weights(screen, agent, w_size=50):
+    if agent is None or not hasattr(agent, "get_weights"):
+        return
+    weights = agent.get_weights()
+    # plot the weights of each layer on the right side of the screen
+    for i in range(len(weights)):
+        w = weights[i]
+        # plot the weight matrix as an image
+        wimg = w.detach().numpy()
+        wimg = np.uint8(255 * (wimg - wimg.min()) / (wimg.max() - wimg.min()))
+        wimg = cv2.resize(wimg, (w_size, w_size), interpolation=cv2.INTER_NEAREST)
+        wimg = np.repeat(wimg[:, :, np.newaxis], 3, axis=2)
+        wimg = pygame.surfarray.make_surface(wimg)
+        screen.blit(wimg, (WIDTH - w_size, HEIGHT- (i+1)*w_size - (i+1)*10))
+        
+def draw_spikes(screen, agent, w_size = 50):
+    if agent is None or not hasattr(agent, "get_spikes"):
+        return
+    spikes = agent.get_spikes()  # get binary spikes
+    for i in range(len(spikes)):
+        # convert binary spike matrix to an image
+        simg = np.uint8(255 * spikes[i])  # since it's binary, no need to normalize
+        simg = cv2.resize(simg, (w_size, w_size), interpolation=cv2.INTER_NEAREST)
+        simg = np.repeat(simg[:, :, np.newaxis], 3, axis=2)
+        simg = pygame.surfarray.make_surface(simg)
+        screen.blit(simg, (WIDTH - w_size, HEIGHT - (i+1)*w_size - (i+1)*10))
+
+        
+
+def get_40x40_env_status(screen):
+    a = pygame.surfarray.array3d(screen)
+    downscaled = cv2.resize(pygame.surfarray.array3d(screen), (40, 40))
+    return downscaled
+
+
+def draw_header(screen, font, score, generation):
+    score_text = font.render(f"Generation {generation} - Score: {score}", True, WHITE)
+    screen.blit(score_text, (WIDTH - score_text.get_width() - 10, 10))
+
+
+def game_over(screen, font):
+    game_over_text = font.render("Fail", True, RED)
+    screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2))
+
+
+def pseudo_ai(paddle, ball):
+    if paddle.y + PADDLE_H / 2 < ball.y:
+        return -1
+    else:
+        return 1
+
+
+def print_game_status(seed, fps, simulation_only, iteration, generation, score, reward=None, full=False):
+    # print game status
+    if full:
+        print("Game status:")
+        print("  - Player: {}".format(PLAYER))
+        print("  - Seed: {}".format(seed))
+        print("  - FPS: {}".format(fps))
+        print("  - Simulation only: {}".format(simulation_only))
+        print("  - Iteration: {}".format(iteration))
+        print("  - Generation: {}".format(generation))
+        print("  - Score: {}".format(score))
+        print("  - Paddle size: {}x{}".format(PADDLE_W, PADDLE_H))
+        print("  - Ball size: {}".format(BALL_SIZE))
+        print("  - Screen size: {}x{}".format(WIDTH, HEIGHT))
+        if reward is not None:
+            print("  - Reward: {}".format(reward))
+    else:
+        if reward is None:
+            print("Game status: It: {} - Gen: {} - Score: {}".format(iteration, generation, score))
+        else:
+            print("Game status: It: {} - Gen: {} - Score: {} - Reward: {}".format(iteration, generation, score, reward))
+            
+            
 if __name__ == "__main__":
     # get arguments
     parser = argparse.ArgumentParser()
