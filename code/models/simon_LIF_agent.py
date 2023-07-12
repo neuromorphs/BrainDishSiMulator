@@ -165,7 +165,7 @@ class SimonAgent:
         """Update using QDN update rule"""
 
         # convert state
-        s = (torch.from_numpy(state) -300) / self.scale
+        s = (torch.from_numpy(state) - 300) / self.scale
         next_s = (torch.from_numpy(next_state) -300 )/ self.scale
 
         if self.input_size == 2:

@@ -9,7 +9,7 @@ from controls import Paddle, Ball
 import sys
 
 sys.path.append("../../")
-from models.rl_agents import DQNAgent, DQN8Agent, ConvDQNAgent, ConvDQNCaptureAgent, IFELSEAgent
+from models.rl_agents import DQNAgent, DQN8Agent, ConvDQNAgent, ConvDQNCaptureAgent
 from models.lif_agents import LIFDQNAgent, LIFELSEAgent, simple_LIF_else, simple_conductance_LIF
 from models.rl_agents import DQNAgent, DQN8Agent, ConvDQNAgent, ConvDQNCaptureAgent, PSEUDOAgent
 from models.lif_agents import LIFDQNAgent, LIFELSEAgent
