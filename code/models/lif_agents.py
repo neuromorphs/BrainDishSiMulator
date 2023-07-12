@@ -275,3 +275,54 @@ class LIFELSEAgent:
     def get_weights(self):
         weights = self.online_network.get_weights()
         return weights
+    
+    
+class simple_LIF_else:
+    def __init__(self, threshold=1.0, current_scale = 10.):
+        self.threshold = threshold  # Spike threshold for the LIF neuron
+        self.membrane_potential = 0.0  # Membrane potential for the LIF neuron
+        self.current_scale = current_scale
+    def process_input(self, y_ball, y_paddle):
+        # Generate input to the LIF neuron based on y position of ball and paddle
+        if y_ball > y_paddle:
+            return 1.0
+        else:
+            return -1
+
+    def update(self, y_ball, y_paddle, dt=0.1, tau=0.1):
+        # Implement LIF neuron dynamics
+        input_current = self.process_input(y_ball, y_paddle)
+        dV = (-self.membrane_potential + input_current) / tau
+        self.membrane_potential += dV * dt
+
+        # Generate spike and reset potential if threshold is reached
+        if self.membrane_potential >= self.threshold:
+            self.membrane_potential = 0.0
+            return 1  # Move paddle up
+        else:
+            return -1  # Move paddle down
+        
+        
+class simple_conductance_LIF:
+    def __init__(self, threshold=1.0, conductance=0.1, reversal_potential=0.0):
+        self.threshold = threshold
+        self.membrane_potential = 0.0
+        self.conductance = conductance
+        self.reversal_potential = reversal_potential
+
+    def process_input(self, y_ball, y_paddle):
+        if y_ball > y_paddle:
+            return 1.0
+        else:
+            return -1
+
+    def update(self, y_ball, y_paddle, dt=0.1, tau=0.1):
+        input_current = self.process_input(y_ball, y_paddle)
+        dV = (-self.membrane_potential + self.conductance * (input_current - self.reversal_potential)) / tau
+        self.membrane_potential += dV * dt
+
+        if self.membrane_potential >= self.threshold:
+            self.membrane_potential = 0.0
+            return 1  # Move paddle up
+        else:
+            return -1  # Move paddle down

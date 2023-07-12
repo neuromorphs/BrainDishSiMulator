@@ -10,7 +10,7 @@ import sys
 
 sys.path.append("../../")
 from models.rl_agents import DQNAgent, DQN8Agent, ConvDQNAgent, ConvDQNCaptureAgent, IFELSEAgent
-from models.lif_agents import LIFDQNAgent, LIFELSEAgent
+from models.lif_agents import LIFDQNAgent, LIFELSEAgent, simple_LIF_else, simple_conductance_LIF
 import time
 import json
 import argparse
@@ -23,7 +23,7 @@ PADDLE_W, PADDLE_H = 40, 250
 FONT_SIZE = 32
 
 # Player type
-PLAYER = "DQN"  # Choose between DQN, DQN8, DQN8-onlypos, ConvDQN, Human and PSEUDO-AI
+PLAYER = "PSEUDO-AI"  # Choose between DQN, DQN8, DQN8-onlypos, ConvDQN, Human and PSEUDO-AI
 
 # Colors
 WHITE = (255, 255, 255)
@@ -38,7 +38,7 @@ os.makedirs(CAPTURE_FOLDER, exist_ok=True)
 
 
 def draw_weights(screen, agent, w_size=50):
-    if agent is None:
+    if agent is None or not hasattr(agent, "get_weights"):
         return
     weights = agent.get_weights()
     # plot the weights of each layer on the right side of the screen
@@ -137,6 +137,10 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
     elif PLAYER == "LIFELSE":
         agent = LIFELSEAgent(seed, num_inputs=2, num_outputs=num_actions,
                              tau_mem=2e-3, tau_syn=10e-3)
+    elif PLAYER == "SIMPLE_LIFELSE":
+        agent = simple_LIF_else(current_scale=1)
+    elif PLAYER == "SIMPLE_COBA" :
+        agent = simple_conductance_LIF(conductance = 0.5*5)
     else:
         raise ValueError("Player type not supported")
     # save_config in json
@@ -205,8 +209,13 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
                     paddle.move(1)
                 if keys[pygame.K_DOWN]:
                     paddle.move(-1)
+                    
             elif PLAYER == "PSEUDO-AI":
                 action = pseudo_ai(paddle, ball)
+                paddle.move(action)
+                
+            elif PLAYER == "SIMPLE_LIFELSE" or PLAYER == "SIMPLE_COBA":
+                action = agent.update(paddle.y, ball.y)
                 paddle.move(action)
 
             elif PLAYER == "ConvDQN":
@@ -293,6 +302,9 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
                 next_state = [np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy]),
                               state[0]]
                 agent.update(state, action, reward, next_state, done)
+                
+            elif PLAYER == "SIMPLE_LIFELSE" or PLAYER == "SIMPLE_COBA":
+                pass 
 
             else:  # valid for DQN, DQN8, DQN8-onlypos
                 next_state = np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy])
