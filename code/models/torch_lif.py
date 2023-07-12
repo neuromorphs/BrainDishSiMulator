@@ -24,7 +24,7 @@ class LIFNeuron:
         self.I_syn += pre_syn_activity
 
 
-class LIF_ShadowNetwork:
+class LIF_FF:
     def __init__(self, seed, num_inputs, num_outputs, hidden_units, tau_mem=5e-3, tau_syn=10e-3, lr=1e-2, simulation_timesteps=10, dt=1e-3):
         self.seed = seed
         self.rng = np.random.default_rng(seed)
@@ -61,7 +61,6 @@ class LIF_ShadowNetwork:
         
     def get_spikes(self):
         return self.spikes
-
 
     def update(self, state, action, reward, next_state, done):
         # Run multiple timesteps of the network simulation
