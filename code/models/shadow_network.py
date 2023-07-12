@@ -62,7 +62,6 @@ class LIF_ShadowNetwork:
     def get_spikes(self):
         return self.spikes
 
-    
 
     def update(self, state, action, reward, next_state, done):
         # Run multiple timesteps of the network simulation

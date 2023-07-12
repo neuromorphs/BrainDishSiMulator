@@ -79,9 +79,9 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
     elif PLAYER == "SHADOW_AGENT" :
         agent =  LIF_ShadowNetwork(seed, num_inputs = 5,
                                 num_outputs = 2,
-                                hidden_units = [16, 8],
+                                hidden_units = [32, 16],
                                 tau_mem=5e-2, tau_syn=10e-2,
-                                lr=1e-2, simulation_timesteps=10, dt=1e-3)
+                                lr=1e-3, simulation_timesteps=10, dt=1e-1)
     else:
         raise ValueError("Player type not supported")
     
@@ -284,6 +284,11 @@ def draw_spikes(screen, agent, w_size = 50):
     if agent is None or not hasattr(agent, "get_spikes"):
         return
     spikes = agent.get_spikes()  # get binary spikes
+
+    # Initialize a Pygame font
+    pygame.font.init()
+    myfont = pygame.font.SysFont('Arial', 30)
+
     for i in range(len(spikes)):
         # convert binary spike matrix to an image
         simg = np.uint8(255 * spikes[i])  # since it's binary, no need to normalize
@@ -291,6 +296,11 @@ def draw_spikes(screen, agent, w_size = 50):
         simg = np.repeat(simg[:, :, np.newaxis], 3, axis=2)
         simg = pygame.surfarray.make_surface(simg)
         screen.blit(simg, (WIDTH - w_size, HEIGHT - (i+1)*w_size - (i+1)*10))
+
+        # Render the text "Layer i"
+        textsurface = myfont.render('L' + str(i), False, (255, 255, 255))
+        screen.blit(textsurface, (WIDTH - w_size*2, HEIGHT - (i+1)*w_size-10))  # Adjust position as needed
+
 
         
 
