@@ -36,9 +36,9 @@ class LIF(nn.Module):
         self.hebbian = args.get("hebbian", False)
         
         self.A_plus = torch.tensor([.1])
-        self.A_minus = torch.tensor([- self.A_plus])
-        self.tau_plus = torch.tensor([10.])
-        self.tau_minus = torch.tensor([10.])
+        self.A_minus = torch.tensor([- self.A_plus*.02])
+        self.tau_plus = torch.tensor([5.])
+        self.tau_minus = torch.tensor([5.])
         
 
         if monitor != "out":
@@ -221,5 +221,6 @@ class LIF(nn.Module):
             else:
                 # If post_spike occurred before pre_spike, depress synapse
                 delta_w -= self.A_minus * torch.exp(delta_t[t] / self.tau_minus) * torch.outer(pre_spike[t], post_spike[t])
+                delta_w = 0
 
         return delta_w

@@ -51,7 +51,7 @@ N = 0
 
 
 def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=False, num_episodes = 70,
-              player_paddle = False):
+              player_paddle = False, record_video = False):
     # Pygame Initialization
     pygame.init()
     FONT = pygame.font.Font(None, FONT_SIZE)
@@ -293,6 +293,7 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
                 # save capture as image
                 if iteration % 100 == 0 and save_capture:
                     cv2.imwrite(os.path.join(CAPTURE_FOLDER, "capture_{}.png".format(iteration)), capture)
+                    
 
                 # convert to grey scale
                 capture = cv2.cvtColor(capture, cv2.COLOR_BGR2GRAY)
@@ -326,7 +327,12 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
                 next_state = np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy])
                 agent.update(state, action, reward, next_state, done)
 
+            image = pygame.surfarray.array3d(pygame.display.get_surface())
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(f'./movie/frame_{iteration:06d}.png', image)
+    
             iteration += 1
+            
         if verbose > 1: print_game_status(seed, fps, simulation_only, iteration, episode, score, reward, full=False)
 
         if episode > num_episodes:
@@ -470,9 +476,10 @@ if __name__ == "__main__":
     num_repeat = args.num_repeat
     simulation_only = False
     player_paddle = False
+    record_video = True 
     # create result folder
     RESULT_FOLDER = "results_init_middle/{}/BALL_SPEED_{}".format(PLAYER, BALL_SPEED)
     os.makedirs(RESULT_FOLDER, exist_ok=True)
     for seed in range(num_repeat):
         game_loop(seed=seed, simulation_only=simulation_only, fps=FPS, save_capture=save_capture, verbose=verbose,
-                num_episodes = num_episodes, player_paddle = player_paddle)
+                num_episodes = num_episodes, player_paddle = player_paddle, record_video = record_video)
