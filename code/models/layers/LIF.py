@@ -129,6 +129,21 @@ class LIF(nn.Module):
         self.mem = None
 
     def forward(self, inputs):
+<<<<<<< Updated upstream
+=======
+        
+        if self.hebbian :
+            with torch.no_grad() :
+                U, I, O, ops = self.simulate(inputs)
+                self.spikes = O[:,-1]
+        else :
+            U, I, O, ops = self.simulate(inputs)
+            self.spikes = O[:,-1]
+        """
+        if self.hebbian:
+            pre_synaptic_activity = inputs
+            post_synaptic_activity = O
+>>>>>>> Stashed changes
 
         U, I, O, ops = self.simulate(inputs)
 
