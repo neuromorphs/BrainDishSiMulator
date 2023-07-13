@@ -13,7 +13,7 @@ class LIF(nn.Module):
         super(LIF, self).__init__()
         self.input_features = input_features
         self.output_features = output_features
-
+        
         self.dt = dt
 
         self.tau_mem = tau_mem
@@ -34,6 +34,12 @@ class LIF(nn.Module):
 
         self.eta = args.get("eta", 0.5)
         self.hebbian = args.get("hebbian", False)
+        
+        self.A_plus = torch.tensor([.1])
+        self.A_minus = torch.tensor([- self.A_plus])
+        self.tau_plus = torch.tensor([10.])
+        self.tau_minus = torch.tensor([10.])
+        
 
         if monitor != "out":
             warnings.warn("Monitoring {} instead of output spikes".format(monitor))
@@ -41,17 +47,22 @@ class LIF(nn.Module):
         self.threshold = 1.0
 
         scale = 4.0
-        self.w = nn.Parameter(torch.randn((self.input_features, self.output_features), requires_grad=True)*scale)
+        if self.hebbian :
+            self.r_grad = False
+        else :
+            self.r_grad = True 
+        
+        self.w = nn.Parameter(torch.randn((self.input_features, self.output_features), requires_grad=self.r_grad)*scale)
 
         if self.kernel_initializer == "he_normal":
             nn.init.kaiming_uniform_(self.w, a=0, mode='fan_in', nonlinearity='relu')
         if self.kernel_initializer == "zeros":
-            self.w = nn.Parameter(torch.zeros((self.input_features, self.output_features), requires_grad=True))
+            self.w = nn.Parameter(torch.zeros((self.input_features, self.output_features), requires_grad=self.r_grad))
         if self.kernel_initializer == "ones":
-            self.w = nn.Parameter(torch.ones((self.input_features, self.output_features), requires_grad=True))
+            self.w = nn.Parameter(torch.ones((self.input_features, self.output_features), requires_grad=self.r_grad))
 
         if self.use_bias:
-            self.bias = nn.Parameter(torch.randn(self.output_features, requires_grad=True))
+            self.bias = nn.Parameter(torch.randn(self.output_features, requires_grad=self.r_grad))
 
     def set_tau(self, tau_mem, tau_syn):
         self.tau_mem_w = tau_mem
@@ -115,6 +126,26 @@ class LIF(nn.Module):
 
             self.syn = new_syn.clone()
             self.mem = new_mem.clone()
+            
+            if self.hebbian:  # Assuming you use this to decide whether to use STDP or not
+                '''for i in range(self.input_features):
+                    #print(i)
+                    for j in range(self.output_features):
+                        #print(j)
+                        # Compute STDP update for each pair of pre and post-synaptic neurons
+                        delta_w = self.compute_stdp_update(inputs[:, t, i], new_out[:, j])
+                        #print(delta_w)
+                        #print(self.w.shape)
+                        self.w[i, j] += delta_w.squeeze()'''
+                        
+                for i in range(self.input_features):
+                    for j in range(self.output_features):
+                        # Compute STDP update for each pair of pre and post-synaptic neurons
+                        delta_t = inputs[:, t, i] - new_out[:, j]
+                        delta_w = self.compute_complex_stdp_update(inputs[:, t, i].unsqueeze(0), new_out[:, j].unsqueeze(0), delta_t)
+                        #print(delta_w.shape)
+                        #print(self.w.shape)
+                        self.w += delta_w #.squeeze()
 
             mem_store.append(new_mem)
             syn_store.append(new_syn)
@@ -128,14 +159,22 @@ class LIF(nn.Module):
 
     def get_weights(self):
         return self.w.clone()
+    
+    def get_spikes(self):
+        return self.spikes.clone()
 
     def reset_states(self):
         self.syn = None
         self.mem = None
 
     def forward(self, inputs):
-
-        U, I, O, ops = self.simulate(inputs)
+        
+        if self.hebbian :
+            with torch.no_grad() :
+                U, I, O, ops = self.simulate(inputs)
+                self.spikes = O[:,-1]
+        else :
+            U, I, O, ops = self.simulate(inputs)
         """
         if self.hebbian:
             pre_synaptic_activity = inputs
@@ -158,3 +197,29 @@ class LIF(nn.Module):
             raise ValueError("monitor must be one of 'mem', 'syn', 'out', 'ops'")
 
         return return_value
+    
+    def compute_stdp_update(self, pre_syn_activity, post_syn_activity):
+        # Compute the weight update from the STDP rule
+        # This will depend on the precise form of your STDP rule
+        # For simplicity, let's say that we increase the weight if both pre and post activity exist, 
+        # and decrease it otherwise. This is not a biologically accurate STDP rule, but is just for example.
+        return self.eta * (pre_syn_activity - post_syn_activity)
+
+    def compute_complex_stdp_update(self, pre_spike, post_spike, delta_t):
+        # Initialize weight update
+        delta_w = torch.zeros_like(self.w)
+
+        for t in range(delta_t.size(0)):
+            #print(pre_spike[t].t().shape)
+            #print(post_spike[t].shape)
+
+            if delta_t[t] > 0:
+                # If post_spike occurred after pre_spike, potentiate synapse
+                #delta_w += self.A_plus * torch.exp(-delta_t[t] / self.tau_plus) * torch.mm(pre_spike[t].t(), post_spike[t])
+                delta_w += self.A_plus * torch.exp(delta_t[t] / self.tau_plus) * torch.outer(pre_spike[t], post_spike[t])
+
+            else:
+                # If post_spike occurred before pre_spike, depress synapse
+                delta_w -= self.A_minus * torch.exp(delta_t[t] / self.tau_minus) * torch.outer(pre_spike[t], post_spike[t])
+
+        return delta_w

@@ -12,10 +12,10 @@ class FeedForwardNetwork(nn.Module):
             for i in range(len(hidden_size)):
                 if i == 0:
                     layers.append(nn.Linear(input_size, hidden_size[i]))
-                    layers.append(nn.ReLU())
+                    layers.append(nn.Tanh())
                 else:
                     layers.append(nn.Linear(hidden_size[i - 1], hidden_size[i]))
-                    layers.append(nn.ReLU())
+                    layers.append(nn.Tanh())
 
             layers.append(nn.Linear(hidden_size[-1], output_size))
         else:

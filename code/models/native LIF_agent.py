@@ -90,7 +90,7 @@ class ReplayBuffer:
 
     def __len__(self):
         return len(self.buffer)
-
+import random
 
 class SimonAgent:
     def __init__(self, seed, num_inputs, num_outputs, hidden_units = [2], buffer_capacity=10000,
@@ -99,75 +99,52 @@ class SimonAgent:
 
         self.seed = seed
         random.seed(seed)
-        torch.manual_seed(seed)
         self.scale = 300.0
         self.simulation_timesteps = simulation_timesteps
-
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.input_size = num_inputs
         self.output_size = num_outputs
         self.batch_size = batch_size
         self.gamma = gamma
-
         hid = hidden_units
         self.online_network = LIFNetwork(num_inputs, hid, num_outputs, tau_mem=tau_mem,
                                          tau_syn=tau_syn, dt=dt, beta=beta, reset=reset, use_bias=use_bias,
-                                         simulation_timesteps=simulation_timesteps).to(self.device)
+                                         simulation_timesteps=simulation_timesteps)
 
-        # add optimizer
-        self.optimizer = optim.Adam(self.online_network.parameters(), lr=lr)
     def get_action(self, state):
-        # convert state
-        s =( torch.from_numpy(state) - 300 )/ self.scale
+        # normalize state
+        s = (state - 300) / self.scale
 
         if self.input_size == 2:
-            s = s[[0, 2]]
+            s = [s[0], s[2]]
 
-        # repeat and add batch dimension
-        s = s.repeat(self.simulation_timesteps, 1).unsqueeze(0).float().to(self.device)
+        # perform forward pass through network here, replacing q_values
+        q_values = self.online_network.forward(s)
 
-
-        with torch.no_grad():
-            q_values = self.online_network(s)
-
-            argmax = q_values.sum(1).argmax(1)
-            action = argmax[0].item()
+        # replace argmax with appropriate operation
+        argmax = max(q_values)
+        action = argmax
         return action
 
     def update(self, state, action, reward, next_state, done):
-        """Update using QDN update rule"""
-
-        # convert state
-        s = (torch.from_numpy(state) - 300) / self.scale
-        next_s = (torch.from_numpy(next_state) -300 )/ self.scale
+        # normalize states
+        s = (state - 300) / self.scale
+        next_s = (next_state - 300) / self.scale
 
         if self.input_size == 2:
-            s = s[[0, 2]]
-            next_s = next_s[[0, 2]]
+            s = [s[0], s[2]]
+            next_s = [next_s[0], next_s[2]]
 
-        # repeat for simulation timesteps
-        s = s.repeat(self.simulation_timesteps, 1).unsqueeze(0).float().to(self.device)
-        next_s = next_s.repeat(self.simulation_timesteps, 1).unsqueeze(0).float().to(self.device)
+        q_values = self.online_network.forward(s)
 
+        next_q_values = self.online_network.forward(next_s)
 
-        with torch.no_grad():
-            q_values = self.online_network(s).sum(1)[:,action]
+        target_q_values = reward + (self.gamma * max(next_q_values) * (not done))
 
-        next_q_values = self.online_network(next_s)
-        next_q_values = next_q_values.sum(1).max(1)[0]
+        # implement update rule here
 
-        #print(q_values, next_q_values)
-
-        target_q_values = reward + (self.gamma * next_q_values * (~done))
         if done:
             print("=========================================", "done")
             self.online_network.reset_states()
-
-        loss = nn.MSELoss()(q_values, target_q_values)
-
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
 
     def get_weights(self):
         weights = self.online_network.get_weights()

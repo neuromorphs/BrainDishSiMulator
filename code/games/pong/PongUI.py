@@ -15,6 +15,7 @@ from models.rl_agents import DQNAgent, DQN8Agent, ConvDQNAgent, ConvDQNCaptureAg
 from models.lif_agents import LIFDQNAgent, LIFELSEAgent
 from models.if_agents import IFELSEAgent
 from models.simon_LIF_agent import SimonAgent
+from models.simon_LIF_hebbian import HebbianSimonAgent
 from models.hugo_nonLIF_agent import HugoAgent
 from models.torch_lif import LIF_FF
 from models.simple_nn import Simple_FF
@@ -107,6 +108,10 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
         agent = Simple_FF(seed, num_inputs=2, num_outputs=2, gamma = 0.99,
                           hidden_units = [2,4,4,2], lr=1e-2)
         delta_update = 2
+    elif PLAYER == 'Hebbian_Simon' :
+        agent = HebbianSimonAgent(seed, num_inputs=2, hidden_units=[8,4], num_outputs=2, lr=1e-4,
+                                reset=False, tau_mem=5e-3, tau_syn=4e-3, use_bias=True, dt=1e-3,
+                                simulation_timesteps=10, gamma=0.99)
     else:
         raise ValueError("Player type not supported")
     
@@ -341,8 +346,12 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
 def draw_weights(screen, agent, w_size=50):
     if agent is None or not hasattr(agent, "get_weights"):
         return
+    
+    pygame.font.init()
+    myfont = pygame.font.SysFont('Arial', 30)
     weights = agent.get_weights()
     # plot the weights of each layer on the right side of the screen
+    
     for i in range(len(weights)):
         w = weights[i]
         # plot the weight matrix as an image
@@ -353,6 +362,10 @@ def draw_weights(screen, agent, w_size=50):
         wimg = pygame.surfarray.make_surface(wimg)
         screen.blit(wimg, (WIDTH - w_size, HEIGHT- (i+1)*w_size - (i+1)*10))
         
+        textsurface = myfont.render('W' + str(i), False, (255, 255, 255))
+        # Adjust the y value here too.
+        screen.blit(textsurface, (WIDTH - w_size*2, HEIGHT- (i+1)*w_size - (i+1)*10))  # Adjust position as needed
+        
 def draw_spikes(screen, agent, w_size = 50):
     if agent is None or not hasattr(agent, "get_spikes"):
         return
@@ -361,18 +374,20 @@ def draw_spikes(screen, agent, w_size = 50):
     # Initialize a Pygame font
     pygame.font.init()
     myfont = pygame.font.SysFont('Arial', 30)
-
     for i in range(len(spikes)):
         # convert binary spike matrix to an image
         simg = np.uint8(255 * spikes[i])  # since it's binary, no need to normalize
         simg = cv2.resize(simg, (w_size, w_size), interpolation=cv2.INTER_NEAREST)
         simg = np.repeat(simg[:, :, np.newaxis], 3, axis=2)
         simg = pygame.surfarray.make_surface(simg)
-        screen.blit(simg, (WIDTH - w_size, HEIGHT - (i+1)*w_size - (i+1)*10))
+        # Change the y value to be at the top of the screen.
+        screen.blit(simg, (WIDTH - w_size, (i+1)*w_size + (i+1)*10))
 
         # Render the text "Layer i"
         textsurface = myfont.render('L' + str(i), False, (255, 255, 255))
-        screen.blit(textsurface, (WIDTH - w_size*2, HEIGHT - (i+1)*w_size-10))  # Adjust position as needed
+        # Adjust the y value here too.
+        screen.blit(textsurface, (WIDTH - w_size*2, (i+1)*w_size + 10))  # Adjust position as needed
+
 
 
         
@@ -453,7 +468,7 @@ if __name__ == "__main__":
     save_capture = args.save_capture
     verbose = args.verbose
     num_repeat = args.num_repeat
-    simulation_only = True
+    simulation_only = False
     player_paddle = False
     # create result folder
     RESULT_FOLDER = "results_init_middle/{}/BALL_SPEED_{}".format(PLAYER, BALL_SPEED)
