@@ -183,7 +183,7 @@ class SimonAgent:
         next_q_values = self.online_network(next_s)
         next_q_values = next_q_values.sum(1).max(1)[0]
 
-        print(q_values, next_q_values)
+        #print(q_values, next_q_values)
 
         target_q_values = reward + (self.gamma * next_q_values * (~done))
         if done:

@@ -15,6 +15,7 @@ from models.rl_agents import DQNAgent, DQN8Agent, ConvDQNAgent, ConvDQNCaptureAg
 from models.lif_agents import LIFDQNAgent, LIFELSEAgent
 from models.if_agents import IFELSEAgent
 from models.simon_LIF_agent import SimonAgent
+from models.hugo_nonLIF_agent import HugoAgent
 from models.torch_lif import LIF_FF
 from models.simple_nn import Simple_FF
 import time
@@ -34,6 +35,7 @@ PLAYER = "PSEUDO-AI"  # Choose between DQN, DQN8, DQN8-onlypos, ConvDQN, Human a
 # Colors
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
+GREEN = (0, 255, 0)
 
 FPS = 100
 RESULT_FOLDER = None
@@ -42,11 +44,13 @@ CAPTURE_FOLDER = "captures"
 os.makedirs(CAPTURE_FOLDER, exist_ok=True)
 
 R = 1
+R_player = 2 # reward for winning against the player
 P = -5
 N = 0
 
 
-def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=False, num_episodes = 70):
+def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=False, num_episodes = 70,
+              player_paddle = False):
     # Pygame Initialization
     pygame.init()
     FONT = pygame.font.Font(None, FONT_SIZE)
@@ -79,7 +83,10 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
     elif PLAYER == "Simon":
         agent = SimonAgent(seed, num_inputs=2, hidden_units=[8,4], num_outputs=2, lr=1e-4,
                            reset=False, tau_mem=5e-3, tau_syn=4e-3, use_bias=True, dt=1e-3,
-                           simulation_timesteps=10, gamma=0.99)
+                    simulation_timesteps=10, gamma=0.99)
+    elif PLAYER == "Hugo" :
+        agent = HugoAgent(seed, num_inputs=2, num_outputs=2, hidden_units = [2], buffer_capacity=10000,
+                            batch_size=1, gamma=0.99, lr=1e-3)
     elif PLAYER == "LIFELSE":
         agent = LIFELSEAgent(seed, num_inputs=2, num_outputs=num_actions, hidden_units = [4], gamma=0.99,
                             tau_mem=5e-3, tau_syn=10e-3, lr=1e-2, simulation_timesteps=10, dt=1e-3)
@@ -148,6 +155,10 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
         game_over_flag = False
         if verbose > 0: print("======", "Episode", episode, "======")
 
+        if player_paddle :
+            right_paddle = Paddle(PADDLE_W, PADDLE_H, screen, side = 'right')
+            
+
         if PLAYER == "ConvDQNCapture":
             last_capture = np.zeros((40, 40, 1))  # init capture system
             state = last_capture
@@ -162,6 +173,13 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+            
+            if player_paddle :
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_UP]:
+                    right_paddle.move(1)
+                if keys[pygame.K_DOWN]:
+                    right_paddle.move(-1)
 
             if PLAYER == "HUMAN":
                 keys = pygame.key.get_pressed()
@@ -211,7 +229,13 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
 
             bounced = ball.move()
             done = ball.x < 0
+            if player_paddle : player_lost = ball.x > (WIDTH-BALL_SIZE)
+            
             collided = ball.check_collision(paddle)
+            if player_paddle :
+                collided_right = ball.check_collision(right_paddle)
+                if collided_right:
+                    event_recording.append({"norm_timestamp": time.time() - init_time, 'event': 'ball bounce'})
 
             if bounced:
                 event_recording.append({"norm_timestamp": time.time() - init_time, 'event': 'ball bounce'})
@@ -226,6 +250,9 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
                 reward = R
             elif done:
                 reward = P
+            elif player_paddle :
+                if player_lost:
+                    reward = R_player
             else:
                 reward = N
 
@@ -236,12 +263,20 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
                 if not simulation_only:
                     game_over(screen, font)
                     pygame.display.update()
-                    time.sleep(0.2)
+                    time.sleep(0.3)
                 game_over_flag = True
+            elif player_paddle :
+                if player_lost:
+                    episode +=1 
+                    game_won(screen, font)
+                    pygame.display.update()
+                    time.sleep(0.3)
+                    game_over_flag = True
 
             
             if not simulation_only:
                 paddle.draw()
+                if player_paddle : right_paddle.draw()
                 ball.draw()
                 draw_header(screen, font, score, episode)
                 draw_spikes(screen, agent)
@@ -354,7 +389,11 @@ def draw_header(screen, font, score, generation):
 
 
 def game_over(screen, font):
-    game_over_text = font.render("Fail", True, RED)
+    game_over_text = font.render("Model failed", True, GREEN)
+    screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2))
+    
+def game_won(screen, font):
+    game_over_text = font.render("You failed", True, RED)
     screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2))
 
 
@@ -365,11 +404,13 @@ def pseudo_ai(paddle, ball):
         return 1
 
 
-def print_game_status(seed, fps, simulation_only, iteration, generation, score, reward=None, full=False):
+def print_game_status(seed, fps, simulation_only, iteration, generation, score, reward=None, full=False,
+                    player_paddle = False):
     # print game status
     if full:
         print("Game status:")
         print("  - Player: {}".format(PLAYER))
+        print("  - Playing against a human: {}".format(player_paddle))
         print("  - Seed: {}".format(seed))
         print("  - FPS: {}".format(fps))
         print("  - Simulation only: {}".format(simulation_only))
@@ -400,21 +441,23 @@ if __name__ == "__main__":
     parser.add_argument("--simulation_only", type=bool, default=False, help="Simulation only")
     parser.add_argument("--save_capture", type=bool, default=False, help="Save capture")
     parser.add_argument("--verbose", type=int, default=1, help="Verbose level")
+    parser.add_argument("--player_paddle", type=bool, default=False, help="Player paddle")
+    
     args = parser.parse_args()
 
     BALL_SPEED = args.ball_speed
     PLAYER = args.player
     FPS = args.fps
     num_episodes = args.num_episodes
-    simulation_only = args.simulation_only 
-    print(simulation_only)
+    simulation_only = bool(args.simulation_only)
     save_capture = args.save_capture
     verbose = args.verbose
     num_repeat = args.num_repeat
-
+    simulation_only = False
+    player_paddle = False
     # create result folder
     RESULT_FOLDER = "results_init_middle/{}/BALL_SPEED_{}".format(PLAYER, BALL_SPEED)
     os.makedirs(RESULT_FOLDER, exist_ok=True)
     for seed in range(num_repeat):
         game_loop(seed=seed, simulation_only=simulation_only, fps=FPS, save_capture=save_capture, verbose=verbose,
-                  num_episodes = num_episodes)
+                num_episodes = num_episodes, player_paddle = player_paddle)

@@ -82,9 +82,9 @@ class LIF(nn.Module):
             mem_tf = input * self.initial_state
             self.mem = mem_tf[:, 0, :]
 
-        self.dcy_mem = torch.math.exp(-self.dt / (self.tau_mem_w + 1e-16))
+        self.dcy_mem = torch.exp(torch.tensor(-self.dt / (self.tau_mem_w + 1e-16)))
         self.scl_mem = 1.0 - self.dcy_mem
-        self.dcy_syn =  torch.math.exp(-self.dt / (self.tau_syn_w + 1e-16))
+        self.dcy_syn =  torch.exp(torch.tensor(-self.dt / (self.tau_syn_w + 1e-16)))
         self.scl_syn = 1.0 - self.dcy_syn
 
         # Here we define two lists which we use to record the membrane potentials and output spikes

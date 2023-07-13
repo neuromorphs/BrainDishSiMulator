@@ -10,7 +10,7 @@ Description: Control objects of the screen
 
 import pygame
 class Paddle:
-    def __init__(self, paddle_w, paddle_h, screen, speed=10):
+    def __init__(self, paddle_w, paddle_h, screen, speed=10, side = 'left'):
         """
         Paddle class
         Args:
@@ -21,6 +21,7 @@ class Paddle:
             speed: paddle speed, in pixels
         """
         self.x = 0
+        if side == 'right' : self.x = screen.get_width() - paddle_w
         self.y = screen.get_height() // 2 - int(paddle_h*0.5)
         self.w = paddle_w
         self.h = paddle_h
@@ -79,7 +80,14 @@ class Ball:
         pygame.draw.circle(self.screen, color, (self.x, self.y), self.ball_size // 2)
 
     def check_collision(self, paddle):
-        if self.dx < 0 and self.x < paddle.x + paddle.w and paddle.y < self.y < paddle.y + paddle.h:
+        if (self.dx < 0 and paddle.x == 0 and
+            self.x < paddle.x + paddle.w and 
+            paddle.y < self.y < paddle.y + paddle.h):
+            self.dx *= -1
+            return True
+        elif (self.dx > 0 and paddle.x > 0 and
+            self.x > paddle.x - self.ball_size and 
+            paddle.y < self.y < paddle.y + paddle.h):
             self.dx *= -1
             return True
         return False
