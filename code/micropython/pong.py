@@ -1,5 +1,9 @@
 import sensor, lcd, image, time, urandom
 
+from maix import KPU
+kpu = KPU()
+kpu.load("/flash/cdn.kmodel")
+
 sensor.reset()                      # 复位并初始化摄像头
 sensor.set_pixformat(sensor.RGB565) # 设置摄像头输出格式为 RGB565（也可以是GRAYSCALE）
 sensor.set_framesize(sensor.QVGA)   # 设置摄像头输出大小为 QVGA (320x240)
@@ -36,7 +40,7 @@ class Paddle:
             speed: paddle speed, in pixels
         """
         self.x = 0
-        self.y = HEIGHT // 2 - int(paddle_h*0.5)
+        self.y = HEIGHT // 2
         self.w = paddle_w
         self.h = paddle_h
         self.screen_h = HEIGHT
@@ -45,10 +49,10 @@ class Paddle:
 
 
     def move(self, direction):
-        if direction == 1 and self.y > 0:
-            self.y -= self.speed
-        elif direction == -1 and self.y < self.screen_h - self.h:
+        if direction == 1 and self.y + self.h//2 + self.speed < self.screen_h:
             self.y += self.speed
+        elif direction == -1 and self.y - self.h//2 > self.speed:
+            self.y -= self.speed
 
 class Ball:
     def __init__(self, dx=1, dy=1, ball_size=40, ball_speed=3):
@@ -75,30 +79,31 @@ class Ball:
         self.x += self.dx * self.speed
         self.y += self.dy * self.speed
 
-        if self.y < 0 or self.y > self.screen_h - self.ball_size:
+        if self.y - self.ball_size < 0 or self.y > self.screen_h - self.ball_size:
             self.dy *= -1
             bounced = True
-        if self.x > self.screen_h - self.ball_size:  # Adding bouncing for the third border
+        if self.x > self.screen_w - self.ball_size:  # Adding bouncing for the third border
             self.dx *= -1
             bounced = True
         return bounced
 
     def check_collision(self, paddle):
-        if self.dx < 0 and self.x < paddle.x + paddle.w and paddle.y < self.y < paddle.y + paddle.h:
+        if self.dx < 0 and self.x - self.ball_size < paddle.x + paddle.w and paddle.y - paddle.h//2 < self.y < paddle.y + paddle.h//2:
             self.dx *= -1
             return True
         return False
 
 def draw_ball(ball):
-    img.draw_circle(ball.x+ENV_X, ball.y+ENV_Y+2*ball.ball_size, ball.ball_size,(255,255,255), 1, fill=True)
+    img.draw_circle(ENV_X+ball.x, ENV_Y+ball.y, ball.ball_size,(255,255,255), 1, fill=True)
 
 def draw_paddle(paddle):
-    img.draw_rectangle(paddle.x+ENV_X,paddle.y+ENV_Y,paddle.w,paddle.h+2, color=(255,255,255), fill=True)
+    img.draw_rectangle(ENV_X+paddle.x//2,ENV_Y+paddle.y-paddle.h//2,paddle.w,paddle.h, color=(255,255,255), fill=True)
 
 def draw_env():
     img.draw_rectangle(0,0,320,240,(0,0,0), fill=True)
-    img.draw_rectangle(ENV_X,ENV_Y,ENV_X+WIDTH,ENV_Y+HEIGHT, (0,0,0),4, fill=True)
-    img.draw_rectangle(ENV_X,ENV_Y,ENV_X+WIDTH,ENV_Y+HEIGHT, (255,255,255),4, fill=False)
+    thickness = 1
+    img.draw_rectangle(ENV_X,ENV_Y,WIDTH,HEIGHT, (0,0,0), thickness, fill=True)
+    img.draw_rectangle(ENV_X,ENV_Y,WIDTH,HEIGHT, (255,255,255),thickness, fill=False)
 
     s = "NEUROPONG"
     for i in range(len(s)):
@@ -125,6 +130,21 @@ def game_over():
 
 
 
+def get_action(paddle, ball):
+    img = sensor.snapshot()
+    img_mnist1=img.to_grayscale(1)
+    img_mnist2=img_mnist1.resize(1,2)
+    img_mnist2.set_pixel(0,0,paddle.y)
+    img_mnist2.set_pixel(0,1,ball.y)
+
+    img_mnist2.pix_to_ai()
+    kpu.run(img_mnist2)
+    feature_map = kpu.get_outputs()
+    if feature_map[0]>feature_map[1]:
+       return 1
+    else:
+       return -1
+
 
 def render(paddle, ball):
     draw_env()
@@ -132,10 +152,14 @@ def render(paddle, ball):
     draw_ball(ball)
 
 def pseudo_ai(paddle, ball):
-    if paddle.y + PADDLE_H // 2 < ball.y:
-        return -1
-    else:
-        return 1
+   DEBUG=False
+   if DEBUG:
+      if paddle.y < ball.y:
+         return 1
+      else:
+         return -1
+   else:
+      return get_action(paddle, ball)
 
 def game_loop(FPS):
     # Game Initialization
@@ -151,12 +175,11 @@ def game_loop(FPS):
     score = 0
 
     while running:
-        print("RUNNING")
 
         done = False
         paddle = Paddle(PADDLE_W, PADDLE_H, PADDLE_SPEED)
-        dx = 14
-        dy = 7
+        dx = 12
+        dy = 4
 
         ball = Ball(dx,dy, BALL_SIZE, ball_speed=BALL_SPEED)
         score = 0
@@ -182,7 +205,6 @@ def game_loop(FPS):
                 reward = P
             else:
                 reward = N
-
 
             draw_env()
             draw_paddle(paddle)

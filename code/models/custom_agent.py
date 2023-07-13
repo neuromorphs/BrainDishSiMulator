@@ -20,7 +20,7 @@ class CustomDeepNetwork:
         output_x = Dense(2, activation='linear', use_bias=True, kernel_initializer="zeros", bias_initializer="zeros")(x2)
 
         model = Model(inputs=input_x, outputs=output_x)
-        model.compile(loss='mse', optimizer=Adam(lr=0.0))
+        model.compile(loss='mse', optimizer=Adam(lr=1e-3))
         self.model = model
 
         # set all weights and bias to zeros
