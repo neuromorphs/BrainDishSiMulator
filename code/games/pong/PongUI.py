@@ -302,7 +302,7 @@ if __name__ == "__main__":
     record_video = args.record_video
     
     # create result folder
-    RESULT_FOLDER = "results_init_middle/{}/BALL_SPEED_{}".format(PLAYER, BALL_SPEED)
+    RESULT_FOLDER = "results_demo/{}/BALL_SPEED_{}".format(PLAYER, BALL_SPEED)
     os.makedirs(RESULT_FOLDER, exist_ok=True)
     for seed in range(num_repeat):
         game_loop(seed=seed, simulation_only=simulation_only, fps=FPS, verbose=verbose,
