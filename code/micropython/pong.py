@@ -1,53 +1,205 @@
-from fpioa_manager import fm, board_info
-from machine import I2C
-import sensor, image, lcd
-from time import sleep
+import sensor, lcd, image, time, urandom
 
-lcd.init()
+sensor.reset()                      # 复位并初始化摄像头
+sensor.set_pixformat(sensor.RGB565) # 设置摄像头输出格式为 RGB565（也可以是GRAYSCALE）
+sensor.set_framesize(sensor.QVGA)   # 设置摄像头输出大小为 QVGA (320x240)
+sensor.skip_frames(time = 2000)     # 跳过2000帧
+clock = time.clock()                # 创建一个clock对象，用来计算帧率
 
-# game parameters
-ball_pos = [120, 160]
-ball_dir = [1, 1]
-ball_radius = 10
+lcd.init()                          # Init lcd display
+lcd.clear(lcd.RED)                  # Clear lcd screen.
 
-paddle_pos = [100, 200]
-paddle_width = 40
-paddle_speed = 5
+# Game parameters
 
-# game loop
-while True:
-    # clear the display
-    lcd.clear()
+SCALE = 3
 
-    # move the ball
-    ball_pos[0] += ball_dir[0]
-    ball_pos[1] += ball_dir[1]
+WIDTH, HEIGHT = 600//SCALE, 600//SCALE
+BALL_SIZE = 20 //SCALE
+PADDLE_W, PADDLE_H, PADDLE_SPEED = 40//SCALE, 250//SCALE, 10//SCALE
+FONT_SIZE = 32//SCALE
+BALL_SPEED = 1
 
-    # check for collision with the wall
-    if ball_pos[0] < 0 or ball_pos[0] > lcd.width():
-        ball_dir[0] = -ball_dir[0]
-    if ball_pos[1] < 0:
-        ball_dir[1] = -ball_dir[1]
 
-    # check for collision with the paddle
-    if ball_pos[1] > paddle_pos[1] and paddle_pos[0] < ball_pos[0] < paddle_pos[0] + paddle_width:
-        ball_dir[1] = -ball_dir[1]
+ENV_X, ENV_Y = 50, 15
 
-    # draw the ball
-    lcd.circle(ball_pos[0], ball_pos[1], ball_radius, lcd.RED, lcd.RED)
+R,P,N = 1,-5,0
 
-    # move the paddle based on button input
-    # assume button_pin is the GPIO pin the button is connected to
-    button_pin = board_info.D[0]
-    fm.register(button_pin, fm.fpioa.GPIO0)
-    button = GPIO(GPIO.GPIO0, GPIO.PULL_UP)
-    if button.value() == 0:
-        paddle_pos[0] -= paddle_speed
+class Paddle:
+    def __init__(self, paddle_w, paddle_h, speed=10):
+        """
+        Paddle class
+        Args:
+            paddle_w: paddle width, in pixels
+            paddle_h: paddle height, in pixels
+            screen_w: screen width, in pixels
+            screen_h: screen height, in pixels
+            speed: paddle speed, in pixels
+        """
+        self.x = 0
+        self.y = HEIGHT // 2 - int(paddle_h*0.5)
+        self.w = paddle_w
+        self.h = paddle_h
+        self.screen_h = HEIGHT
+        self.screen_w = WIDTH
+        self.speed = speed
+
+
+    def move(self, direction):
+        if direction == 1 and self.y > 0:
+            self.y -= self.speed
+        elif direction == -1 and self.y < self.screen_h - self.h:
+            self.y += self.speed
+
+class Ball:
+    def __init__(self, dx=1, dy=1, ball_size=40, ball_speed=3):
+        """
+        Ball class
+        Args:
+            dx: velocity in x direction
+            dy: velocity in y direction
+            screen_w: screen width, in pixels
+            screen_h: screen height, in pixels
+            ball_size: ball size, in pixels
+        """
+        self.x = WIDTH// 2
+        self.y = HEIGHT // 2
+        self.speed = ball_speed
+        self.dx = dx
+        self.dy = dy
+        self.screen_h = HEIGHT
+        self.screen_w = WIDTH
+        self.ball_size = ball_size
+
+    def move(self):
+        bounced = False
+        self.x += self.dx * self.speed
+        self.y += self.dy * self.speed
+
+        if self.y < 0 or self.y > self.screen_h - self.ball_size:
+            self.dy *= -1
+            bounced = True
+        if self.x > self.screen_h - self.ball_size:  # Adding bouncing for the third border
+            self.dx *= -1
+            bounced = True
+        return bounced
+
+    def check_collision(self, paddle):
+        if self.dx < 0 and self.x < paddle.x + paddle.w and paddle.y < self.y < paddle.y + paddle.h:
+            self.dx *= -1
+            return True
+        return False
+
+def draw_ball(ball):
+    img.draw_circle(ball.x+ENV_X, ball.y+ENV_Y+2*ball.ball_size, ball.ball_size,(255,255,255), 1, fill=True)
+
+def draw_paddle(paddle):
+    img.draw_rectangle(paddle.x+ENV_X,paddle.y+ENV_Y,paddle.w,paddle.h+2, color=(255,255,255), fill=True)
+
+def draw_env():
+    img.draw_rectangle(0,0,320,240,(0,0,0), fill=True)
+    img.draw_rectangle(ENV_X,ENV_Y,ENV_X+WIDTH,ENV_Y+HEIGHT, (0,0,0),4, fill=True)
+    img.draw_rectangle(ENV_X,ENV_Y,ENV_X+WIDTH,ENV_Y+HEIGHT, (255,255,255),4, fill=False)
+
+    s = "NEUROPONG"
+    for i in range(len(s)):
+        img.draw_string(10, i*22+15, s[i], color = (255, 255, 255), scale = 2, mono_space = False,
+                            char_rotation = 0, char_hmirror = False, char_vflip = False,
+                            string_rotation = 0, string_hmirror = False, string_vflip = True)
+
+def draw_score(score):
+    img.draw_string(180, 17, "score : "+str(score), color = (255, 255, 255), scale = 1, mono_space = False,
+                            char_rotation = 0, char_hmirror = False, char_vflip = False,
+                            string_rotation = 0, string_hmirror = False, string_vflip = True)
+
+
+img = sensor.snapshot()
+
+def game_over():
+    img.draw_rectangle(0,0,320,240, (0,0,0), fill=True)
+    img.draw_string(100, 100, "GAME OVER", color = (255, 0, 0), scale = 2, mono_space = False,
+                        char_rotation = 0, char_hmirror = False, char_vflip = False,
+                        string_rotation = 0, string_hmirror = False, string_vflip = False)
+
+    img.draw_rectangle(90,90,120,43, (255,255,255), 3, fill=False)
+
+
+
+
+
+def render(paddle, ball):
+    draw_env()
+    draw_paddle(paddle)
+    draw_ball(ball)
+
+def pseudo_ai(paddle, ball):
+    if paddle.y + PADDLE_H // 2 < ball.y:
+        return -1
     else:
-        paddle_pos[0] += paddle_speed
+        return 1
 
-    # draw the paddle
-    lcd.rect(paddle_pos[0], paddle_pos[1], paddle_pos[0] + paddle_width, paddle_pos[1] + 10, lcd.GREEN, lcd.GREEN)
+def game_loop(FPS):
+    # Game Initialization
 
-    # delay before the next frame
-    sleep(0.02)
+    running = True
+
+    # RL Agent
+    num_inputs = 5
+    num_actions = 2
+
+    iteration = 0
+    episode = 0
+    score = 0
+
+    while running:
+        print("RUNNING")
+
+        done = False
+        paddle = Paddle(PADDLE_W, PADDLE_H, PADDLE_SPEED)
+        dx = 14
+        dy = 7
+
+        ball = Ball(dx,dy, BALL_SIZE, ball_speed=BALL_SPEED)
+        score = 0
+        game_over_flag = False
+
+        state = [paddle.y, ball.x, ball.y, ball.dx, ball.dy]
+        next_state = state
+
+        while not game_over_flag:
+            img = sensor.snapshot()
+
+            action = pseudo_ai(paddle, ball)
+            paddle.move(action)
+
+            bounced = ball.move()
+            done = ball.x < 0
+            collided = ball.check_collision(paddle)
+
+            reward = N
+            if collided:
+                reward = R
+            elif done:
+                reward = P
+            else:
+                reward = N
+
+
+            draw_env()
+            draw_paddle(paddle)
+            draw_ball(ball)
+
+
+            # update screen and scores
+            score += (1 if collided else 0)
+            if done or score > 100:  # episode is over if the score is greater than 100
+                episode += 1
+                game_over()
+                lcd.display(img)
+                time.sleep(4)
+                game_over_flag = True
+
+            draw_score(score)
+            lcd.display(img)                # Display image on lcd.
+            print(clock.fps()) # 打印帧率
+
+game_loop(100)
