@@ -424,9 +424,15 @@ class simple_LIF_else:
         # Generate spike and reset potential if threshold is reached
         if self.membrane_potential >= self.threshold:
             self.membrane_potential = 0.0
+            self.spikes = np.array([[1,0,0,0]])
             return 1  # Move paddle up
         else:
+            self.spikes = np.array([[0,0,0,0]])
             return -1  # Move paddle down
+        
+    def get_spikes(self) :
+        return self.spikes
+        
         
         
 class simple_conductance_LIF:

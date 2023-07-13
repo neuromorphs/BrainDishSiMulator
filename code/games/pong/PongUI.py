@@ -31,6 +31,7 @@ PLAYER = "LIFELSE"  # Choose between DQN, DQN8, DQN8-onlypos, ConvDQN, Human and
 # Colors
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
+GREEN = (0, 255, 0)
 
 FPS = 100
 RESULT_FOLDER = None
@@ -269,6 +270,7 @@ def draw_spikes(screen, agent, w_size = 50):
 
     for i in range(len(spikes)):
         # convert binary spike matrix to an image
+        
         simg = np.uint8(255 * spikes[i])  # since it's binary, no need to normalize
         simg = cv2.resize(simg, (w_size, w_size), interpolation=cv2.INTER_NEAREST)
         simg = np.repeat(simg[:, :, np.newaxis], 3, axis=2)
