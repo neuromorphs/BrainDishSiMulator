@@ -134,8 +134,16 @@ def get_action(paddle, ball):
     img = sensor.snapshot()
     img_mnist1=img.to_grayscale(1)
     img_mnist2=img_mnist1.resize(1,2)
-    img_mnist2.set_pixel(0,0,paddle.y)
-    img_mnist2.set_pixel(0,1,ball.y)
+
+    y_p = paddle.y
+    y_b = ball.y
+
+    # add noise
+    n = 6
+    noise = urandom.randint(-n,n)
+
+    img_mnist2.set_pixel(0,0,y_p)
+    img_mnist2.set_pixel(0,1,y_b+noise)
 
     img_mnist2.pix_to_ai()
     kpu.run(img_mnist2)
@@ -206,10 +214,7 @@ def game_loop(FPS):
             else:
                 reward = N
 
-            draw_env()
-            draw_paddle(paddle)
-            draw_ball(ball)
-
+            render(paddle, ball)
 
             # update screen and scores
             score += (1 if collided else 0)
