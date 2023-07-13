@@ -16,6 +16,8 @@ clock = time.clock()                # 创建一个clock对象，用来计算帧�
 lcd.init()                          # Init lcd display
 lcd.clear(lcd.RED)                  # Clear lcd screen.
 
+time.sleep(2)
+
 fm.register(board_info.BOOT_KEY, fm.fpioa.GPIO3, force=True)
 key_input = GPIO(GPIO.GPIO3, GPIO.IN)
 # Game parameters
@@ -34,6 +36,13 @@ ENV_X, ENV_Y = 50, 15
 R,P,N = 1,-5,0
 
 PLAYER_2 = False
+if key_input.value()==0:
+    PLAYER_2 = True
+    lcd.clear()
+    time.sleep(1)
+
+score_ai = 0
+score_user = 0
 
 class Paddle:
     def __init__(self, paddle_w, paddle_h, speed=10, right=False):
@@ -138,6 +147,10 @@ def draw_score(score):
                             char_rotation = 0, char_hmirror = False, char_vflip = False,
                             string_rotation = 0, string_hmirror = False, string_vflip = True)
 
+def draw_double_score(left, right):
+    img.draw_string(180, 17, "score : "+str(left)+" - "+str(right), color = (255, 255, 255), scale = 1, mono_space = False,
+                            char_rotation = 0, char_hmirror = False, char_vflip = False,
+                            string_rotation = 0, string_hmirror = False, string_vflip = True)
 
 img = sensor.snapshot()
 
@@ -192,6 +205,20 @@ def pseudo_ai(paddle, ball):
    else:
       return get_action(paddle, ball)
 
+
+
+def wait_for_start():
+    img = sensor.snapshot()
+    img.draw_rectangle(0,0,320,240,(0,0,0), fill=True)
+    img.draw_string(100, 100, "READY?", color = (255, 255, 255), scale = 2, mono_space = False,
+                        char_rotation = 0, char_hmirror = False, char_vflip = False,
+                        string_rotation = 0, string_hmirror = False, string_vflip = False)
+    lcd.display(img)
+    while(key_input.value()==0):
+        time.sleep(1)
+    time.sleep(1)
+
+
 def game_loop(FPS):
     # Game Initialization
 
@@ -204,6 +231,8 @@ def game_loop(FPS):
     iteration = 0
     episode = 0
     score = 0
+    if PLAYER_2:
+        wait_for_start()
 
     while running:
 
@@ -255,7 +284,14 @@ def game_loop(FPS):
                 render(paddle, ball)
 
             # update screen and scores
-            score += (1 if collided else 0)
+            if PLAYER_2:
+                score_ai += (1 if ball.x>WIDTH else 0)
+                score_user += (1 if ball.x<0 else 0)
+                draw_double_score(score_ai, score_user)
+            else:
+                score += (1 if collided else 0)
+                draw_score(score)
+
             if done or score > 100:  # episode is over if the score is greater than 100
                 episode += 1
                 game_over()
@@ -263,7 +299,6 @@ def game_loop(FPS):
                 time.sleep(4)
                 game_over_flag = True
 
-            draw_score(score)
             lcd.display(img)                # Display image on lcd.
             print(clock.fps()) # 打印帧率
 
