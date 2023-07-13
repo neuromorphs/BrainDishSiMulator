@@ -1,4 +1,7 @@
 import sensor, lcd, image, time, urandom
+from fpioa_manager import fm
+from board import board_info
+from maix import GPIO
 
 from maix import KPU
 kpu = KPU()
@@ -13,6 +16,8 @@ clock = time.clock()                # 创建一个clock对象，用来计算帧�
 lcd.init()                          # Init lcd display
 lcd.clear(lcd.RED)                  # Clear lcd screen.
 
+fm.register(board_info.BOOT_KEY, fm.fpioa.GPIO3, force=True)
+key_input = GPIO(GPIO.GPIO3, GPIO.IN)
 # Game parameters
 
 SCALE = 3
@@ -28,8 +33,10 @@ ENV_X, ENV_Y = 50, 15
 
 R,P,N = 1,-5,0
 
+PLAYER_2 = False
+
 class Paddle:
-    def __init__(self, paddle_w, paddle_h, speed=10):
+    def __init__(self, paddle_w, paddle_h, speed=10, right=False):
         """
         Paddle class
         Args:
@@ -40,6 +47,8 @@ class Paddle:
             speed: paddle speed, in pixels
         """
         self.x = 0
+        if right:
+            self.x = WIDTH
         self.y = HEIGHT // 2
         self.w = paddle_w
         self.h = paddle_h
@@ -74,7 +83,7 @@ class Ball:
         self.screen_w = WIDTH
         self.ball_size = ball_size
 
-    def move(self):
+    def move(self, player_2=False):
         bounced = False
         self.x += self.dx * self.speed
         self.y += self.dy * self.speed
@@ -82,13 +91,23 @@ class Ball:
         if self.y - self.ball_size < 0 or self.y > self.screen_h - self.ball_size:
             self.dy *= -1
             bounced = True
-        if self.x > self.screen_w - self.ball_size:  # Adding bouncing for the third border
+
+        if not player_2 and self.x > self.screen_w - self.ball_size:  # Adding bouncing for the third border
             self.dx *= -1
             bounced = True
         return bounced
 
     def check_collision(self, paddle):
+        return self.check_collision_left(paddle)
+
+    def check_collision_left(self, paddle):
         if self.dx < 0 and self.x - self.ball_size < paddle.x + paddle.w and paddle.y - paddle.h//2 < self.y < paddle.y + paddle.h//2:
+            self.dx *= -1
+            return True
+        return False
+
+    def check_collision_right(self, paddle):
+        if self.dx > 0 and self.x + self.ball_size > paddle.x - paddle.w and paddle.y - paddle.h//2 < self.y < paddle.y + paddle.h//2:
             self.dx *= -1
             return True
         return False
@@ -98,6 +117,9 @@ def draw_ball(ball):
 
 def draw_paddle(paddle):
     img.draw_rectangle(ENV_X+paddle.x//2,ENV_Y+paddle.y-paddle.h//2,paddle.w,paddle.h, color=(255,255,255), fill=True)
+
+def draw_paddle_right(paddle):
+    img.draw_rectangle(ENV_X+paddle.x-paddle.w ,ENV_Y+paddle.y-paddle.h//2,paddle.w,paddle.h, color=(255,255,255), fill=True)
 
 def draw_env():
     img.draw_rectangle(0,0,320,240,(0,0,0), fill=True)
@@ -153,11 +175,12 @@ def get_action(paddle, ball):
     else:
        return -1
 
-
-def render(paddle, ball):
+def render(paddle, ball, paddle_right=0):
     draw_env()
     draw_paddle(paddle)
     draw_ball(ball)
+    if paddle_right!=0:
+       draw_paddle_right(paddle_right)
 
 def pseudo_ai(paddle, ball):
    DEBUG=False
@@ -186,6 +209,7 @@ def game_loop(FPS):
 
         done = False
         paddle = Paddle(PADDLE_W, PADDLE_H, PADDLE_SPEED)
+        paddle_right = Paddle(PADDLE_W, PADDLE_H, PADDLE_SPEED, right=True)
         dx = 12
         dy = 4
 
@@ -202,9 +226,20 @@ def game_loop(FPS):
             action = pseudo_ai(paddle, ball)
             paddle.move(action)
 
-            bounced = ball.move()
-            done = ball.x < 0
-            collided = ball.check_collision(paddle)
+            if PLAYER_2:
+                if key_input.value()==0:
+                    paddle_right.move(-1)
+                else:
+                    paddle_right.move(1)
+
+            bounced = ball.move(player_2=PLAYER_2)
+            done = ball.x < 0 or ball.x > WIDTH
+
+            if PLAYER_2:
+                collided = ball.check_collision_left(paddle)
+                collided = ball.check_collision_right(paddle_right)
+            else:
+                collided = ball.check_collision(paddle)
 
             reward = N
             if collided:
@@ -214,7 +249,10 @@ def game_loop(FPS):
             else:
                 reward = N
 
-            render(paddle, ball)
+            if PLAYER_2:
+                render(paddle, ball, paddle_right)
+            else:
+                render(paddle, ball)
 
             # update screen and scores
             score += (1 if collided else 0)
