@@ -5,3 +5,5 @@ data/*.csv
 *venv*
 *__py*
 *.json
+*.png
+

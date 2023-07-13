@@ -17,6 +17,7 @@ from models.if_agents import IFELSEAgent
 from models.simon_LIF_agent import SimonAgent
 from models.simon_LIF_hebbian import HebbianSimonAgent
 from models.hugo_nonLIF_agent import HugoAgent
+from models.custom_agent import CustomDeepNetwork
 from models.torch_lif import LIF_FF
 from models.simple_nn import Simple_FF
 import time
@@ -81,6 +82,8 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
         agent = None
     elif PLAYER == "PSEUDO-AI":
         agent = PSEUDOAgent(seed)
+    elif PLAYER == "Custom":
+        agent = CustomDeepNetwork()
     elif PLAYER == "Simon":
         agent = SimonAgent(seed, num_inputs=2, hidden_units=[8,4], num_outputs=2, lr=1e-4,
                            reset=False, tau_mem=5e-3, tau_syn=4e-3, use_bias=True, dt=1e-3,
