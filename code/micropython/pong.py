@@ -41,9 +41,6 @@ if key_input.value()==0:
     lcd.clear()
     time.sleep(1)
 
-score_ai = 0
-score_user = 0
-
 class Paddle:
     def __init__(self, paddle_w, paddle_h, speed=10, right=False):
         """
@@ -142,6 +139,12 @@ def draw_env():
                             char_rotation = 0, char_hmirror = False, char_vflip = False,
                             string_rotation = 0, string_hmirror = False, string_vflip = True)
 
+    if PLAYER_2:
+        s = "YOU"
+        for i in range(len(s)):
+            img.draw_string(25+ENV_X+WIDTH, i*22+80, s[i], color = (255, 255, 255), scale = 2, mono_space = False,
+                                char_rotation = 0, char_hmirror = False, char_vflip = False,
+                                string_rotation = 0, string_hmirror = False, string_vflip = True)
 def draw_score(score):
     img.draw_string(180, 17, "score : "+str(score), color = (255, 255, 255), scale = 1, mono_space = False,
                             char_rotation = 0, char_hmirror = False, char_vflip = False,
@@ -163,7 +166,32 @@ def game_over():
     img.draw_rectangle(90,90,120,43, (255,255,255), 3, fill=False)
 
 
+def point_over():
+    img.draw_rectangle(0,0,320,240, (0,0,0), fill=True)
+    img.draw_string(100, 100, "   POINT!", color = (255, 0, 0), scale = 2, mono_space = False,
+                        char_rotation = 0, char_hmirror = False, char_vflip = False,
+                        string_rotation = 0, string_hmirror = False, string_vflip = False)
 
+    img.draw_rectangle(90,90,120,43, (255,255,255), 3, fill=False)
+
+
+def win(player):
+    message = player+" WIN"
+    if player!="YOU":
+        message += "S"
+
+    img.draw_rectangle(0,0,320,240, (0,0,0), fill=True)
+    img.draw_string(100, 100, message, color = (0, 255, 0), scale = 2, mono_space = False,
+                        char_rotation = 0, char_hmirror = False, char_vflip = False,
+                        string_rotation = 0, string_hmirror = False, string_vflip = False)
+
+    img.draw_rectangle(90,130,120,1, (255,255,255), 3, fill=False)
+
+    lcd.display(img)
+    time.sleep(3)
+    game_over()
+    lcd.display(img)
+    time.sleep(2)
 
 def get_action(paddle, ball):
     img = sensor.snapshot()
@@ -175,6 +203,8 @@ def get_action(paddle, ball):
 
     # add noise
     n = 6
+    if PLAYER_2:
+       n = 12
     noise = urandom.randint(-n,n)
 
     img_mnist2.set_pixel(0,0,y_p)
@@ -210,13 +240,20 @@ def pseudo_ai(paddle, ball):
 def wait_for_start():
     img = sensor.snapshot()
     img.draw_rectangle(0,0,320,240,(0,0,0), fill=True)
-    img.draw_string(100, 100, "READY?", color = (255, 255, 255), scale = 2, mono_space = False,
+    img.draw_string(130, 100, "READY?", color = (255, 255, 255), scale = 2, mono_space = False,
                         char_rotation = 0, char_hmirror = False, char_vflip = False,
                         string_rotation = 0, string_hmirror = False, string_vflip = False)
     lcd.display(img)
-    while(key_input.value()==0):
-        time.sleep(1)
-    time.sleep(1)
+
+    if PLAYER_2:
+        while(key_input.value()==1):
+            time.sleep_ms(300)
+        img.draw_rectangle(0,0,320,240,(0,0,0), fill=True)
+        img.draw_string(140, 100, "GO!", color = (255, 255, 255), scale = 2, mono_space = False,
+                        char_rotation = 0, char_hmirror = False, char_vflip = False,
+                        string_rotation = 0, string_hmirror = False, string_vflip = False)
+        lcd.display(img)
+        time.sleep(2)
 
 
 def game_loop(FPS):
@@ -233,6 +270,11 @@ def game_loop(FPS):
     score = 0
     if PLAYER_2:
         wait_for_start()
+
+
+
+    score_ai = 0
+    score_user = 0
 
     while running:
 
@@ -288,16 +330,32 @@ def game_loop(FPS):
                 score_ai += (1 if ball.x>WIDTH else 0)
                 score_user += (1 if ball.x<0 else 0)
                 draw_double_score(score_ai, score_user)
+
+                if done:
+                   point_over()
+                   lcd.display(img)
+                   time.sleep(2)
+                   game_over_flag = True
+
+                if score_ai>6 and score_user<score_ai:
+                   win("NEUROPONG")
+                   score_ai = 0
+                   score_user = 0
+                if score_user>6 and score_user>score_ai:
+                   win("YOU")
+                   score_ai = 0
+                   score_user = 0
+
             else:
                 score += (1 if collided else 0)
                 draw_score(score)
 
-            if done or score > 100:  # episode is over if the score is greater than 100
-                episode += 1
-                game_over()
-                lcd.display(img)
-                time.sleep(4)
-                game_over_flag = True
+                if done or score > 100:  # episode is over if the score is greater than 100
+                    episode += 1
+                    game_over()
+                    lcd.display(img)
+                    time.sleep(2)
+                    game_over_flag = True
 
             lcd.display(img)                # Display image on lcd.
             print(clock.fps()) # 打印帧率
