@@ -333,7 +333,7 @@ def game_loop(seed, simulation_only=False, fps=60, save_capture=False, verbose=F
         json.dump(event_recording, f)
 
     if hasattr(agent, "save_model"):
-        agent.save_model('./models/{}.h5'.format(init_time))
+        agent.save_model('../../models/{}.h5'.format(init_time))
     pygame.quit()
 
 
@@ -453,7 +453,7 @@ if __name__ == "__main__":
     save_capture = args.save_capture
     verbose = args.verbose
     num_repeat = args.num_repeat
-    simulation_only = False
+    simulation_only = True
     player_paddle = False
     # create result folder
     RESULT_FOLDER = "results_init_middle/{}/BALL_SPEED_{}".format(PLAYER, BALL_SPEED)
