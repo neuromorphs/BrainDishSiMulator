@@ -9,10 +9,11 @@ from controls import Paddle, Ball
 import sys
 
 sys.path.append("../../")
-from models.lif_agents import LIFELSEAgent
+from models.lif_agents import simple_LIF_else
 from models.simon_LIF_agent import SimonAgent
 from models.simon_LIF_hebbian import HebbianSimonAgent
 from models.hugo_nonLIF_agent import HugoAgent
+from models.torch_lif import LIF_FF
 import time
 import json
 import argparse
@@ -34,17 +35,18 @@ RED = (255, 0, 0)
 FPS = 100
 RESULT_FOLDER = None
 
+R = 1
+R_player = 2 # reward for winning against the player
+P = -5
+N = 0
+
 CAPTURE_FOLDER = "captures"
 os.makedirs(CAPTURE_FOLDER, exist_ok=True)
 
 
-simulation_only = True
-player_paddle = False
-record_video = False
-
-
 def game_loop(seed, simulation_only=False, fps=60, verbose=False, num_episodes = 70,
             player_paddle = False, record_video = False):
+    
     # Pygame Initialization
     pygame.init()
     FONT = pygame.font.Font(None, FONT_SIZE)
@@ -62,9 +64,8 @@ def game_loop(seed, simulation_only=False, fps=60, verbose=False, num_episodes =
     elif PLAYER == "Hugo" : # Regular ol' dumb DQN network
         agent = HugoAgent(seed, num_inputs=2, num_outputs=2, hidden_units = [2], buffer_capacity=10000,
                             batch_size=1, gamma=0.99, lr=1e-3)
-    elif PLAYER == "LIFELSE": # The future of AI, IF-ELSE statement with spikes
-        agent = LIFELSEAgent(seed, num_inputs=2, num_outputs=2, hidden_units = [4], gamma=0.99,
-                            tau_mem=5e-3, tau_syn=10e-3, lr=1e-2, simulation_timesteps=10, dt=1e-3)
+    elif PLAYER == "LIF_FF": # The future of AI, IF-ELSE statement with spikes
+        agent = simple_LIF_else(current_scale=1)
     elif PLAYER == 'Hebbian_Simon' : # Dishbrain-like network, with hebbian learning on spikes (that's allowed)
         agent = HebbianSimonAgent(seed, num_inputs=2, hidden_units=[8,4], num_outputs=2, lr=1e-4,
                                 reset=False, tau_mem=5e-3, tau_syn=4e-3, use_bias=True, dt=1e-3,
@@ -139,8 +140,12 @@ def game_loop(seed, simulation_only=False, fps=60, verbose=False, num_episodes =
                 if keys[pygame.K_DOWN]:
                     right_paddle.move(-1)
                     
-            state = np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy])
-            action = agent.get_action(state)
+            if PLAYER == "LIF_FF":
+                action = agent.update(paddle.y, ball.y)
+                paddle.move(action)
+            else :
+                state = np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy])
+                action = agent.get_action(state)
 
             # controller action
             controller_action = 1 if action == 1 else -1
@@ -148,7 +153,13 @@ def game_loop(seed, simulation_only=False, fps=60, verbose=False, num_episodes =
 
             bounced = ball.move()
             done = ball.x < 0
+            if player_paddle : player_lost = ball.x > (WIDTH-BALL_SIZE)
+            
             collided = ball.check_collision(paddle)
+            if player_paddle :
+                collided_right = ball.check_collision(right_paddle)
+                if collided_right:
+                    event_recording.append({"norm_timestamp": time.time() - init_time, 'event': 'ball bounce'})
 
             if bounced:
                 event_recording.append({"norm_timestamp": time.time() - init_time, 'event': 'ball bounce'})
@@ -158,7 +169,16 @@ def game_loop(seed, simulation_only=False, fps=60, verbose=False, num_episodes =
             if collided:
                 event_recording.append({"norm_timestamp": time.time() - init_time, 'event': 'ball return'})
 
-            reward = 1 if collided else -1 if done else 0
+            reward = N
+            if collided:
+                reward = R
+            elif done:
+                reward = P
+            elif player_paddle :
+                if player_lost:
+                    reward = R_player
+            else:
+                reward = N
 
             # update screen and scores
             score += (1 if collided else 0)
@@ -167,11 +187,20 @@ def game_loop(seed, simulation_only=False, fps=60, verbose=False, num_episodes =
                 if not simulation_only:
                     game_over(screen, font)
                     pygame.display.update()
-                    time.sleep(0.2)
+                    time.sleep(0.3)
                 game_over_flag = True
+            elif player_paddle :
+                if player_lost:
+                    episode +=1 
+                    game_won(screen, font)
+                    pygame.display.update()
+                    time.sleep(0.3)
+                    game_over_flag = True
 
+            
             if not simulation_only:
                 paddle.draw()
+                if player_paddle : right_paddle.draw()
                 ball.draw()
                 draw_header(screen, font, score, episode)
                 draw_spikes(screen, agent)
@@ -180,8 +209,11 @@ def game_loop(seed, simulation_only=False, fps=60, verbose=False, num_episodes =
 
                 clock.tick(fps)
 
-                next_state = np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy])
-                agent.update(state, action, reward, next_state, done)
+                if PLAYER == "LIF_FF":
+                    pass
+                else :
+                    next_state = np.array([paddle.y, ball.x, ball.y, ball.dx, ball.dy])
+                    agent.update(state, action, reward, next_state, done)
 
             if record_video :
                 image = pygame.surfarray.array3d(pygame.display.get_surface())
@@ -204,10 +236,12 @@ def game_loop(seed, simulation_only=False, fps=60, verbose=False, num_episodes =
     pygame.quit()
 
 
-
 def draw_weights(screen, agent, w_size=50):
     if agent is None or not hasattr(agent, "get_weights"):
         return
+    
+    pygame.font.init()
+    myfont = pygame.font.SysFont('Arial', 30)
     weights = agent.get_weights()
     # plot the weights of each layer on the right side of the screen
     for i in range(len(weights)):
@@ -219,6 +253,10 @@ def draw_weights(screen, agent, w_size=50):
         wimg = np.repeat(wimg[:, :, np.newaxis], 3, axis=2)
         wimg = pygame.surfarray.make_surface(wimg)
         screen.blit(wimg, (WIDTH - w_size, HEIGHT- (i+1)*w_size - (i+1)*10))
+        
+        textsurface = myfont.render('W' + str(i), False, (255, 255, 255))
+        # Adjust the y value here too.
+        screen.blit(textsurface, (WIDTH - w_size*2, HEIGHT- (i+1)*w_size - (i+1)*10))  # Adjust position as needed
         
 def draw_spikes(screen, agent, w_size = 50):
     if agent is None or not hasattr(agent, "get_spikes"):
@@ -235,11 +273,14 @@ def draw_spikes(screen, agent, w_size = 50):
         simg = cv2.resize(simg, (w_size, w_size), interpolation=cv2.INTER_NEAREST)
         simg = np.repeat(simg[:, :, np.newaxis], 3, axis=2)
         simg = pygame.surfarray.make_surface(simg)
-        screen.blit(simg, (WIDTH - w_size, HEIGHT - (i+1)*w_size - (i+1)*10))
+        # Change the y value to be at the top of the screen.
+        screen.blit(simg, (WIDTH - w_size, (i+1)*w_size + (i+1)*10))
 
         # Render the text "Layer i"
         textsurface = myfont.render('L' + str(i), False, (255, 255, 255))
-        screen.blit(textsurface, (WIDTH - w_size*2, HEIGHT - (i+1)*w_size-10))  # Adjust position as needed
+        # Adjust the y value here too.
+        screen.blit(textsurface, (WIDTH - w_size*2, (i+1)*w_size + 10))  # Adjust position as needed
+
 
 def draw_header(screen, font, score, generation):
     score_text = font.render(f"Generation {generation} - Score: {score}", True, WHITE)
@@ -247,7 +288,11 @@ def draw_header(screen, font, score, generation):
 
 
 def game_over(screen, font):
-    game_over_text = font.render("Fail", True, RED)
+    game_over_text = font.render("Model failed", True, GREEN)
+    screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2))
+    
+def game_won(screen, font):
+    game_over_text = font.render("You failed", True, RED)
     screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2))
 
 
@@ -300,6 +345,7 @@ if __name__ == "__main__":
     verbose = args.verbose
     num_repeat = args.num_repeat
     record_video = args.record_video
+    player_paddle = args.player_paddle
     
     # create result folder
     RESULT_FOLDER = "results_demo/{}/BALL_SPEED_{}".format(PLAYER, BALL_SPEED)
